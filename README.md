@@ -33,10 +33,8 @@ Searches the Salesforce case summaries for relevant entries based on a semantic 
 {
   "results": [
     {
-      "id": 11716,
-      "headerPath": ["The SQL Language", "Creating a New Table"],
-      "content": "CREATE TABLE ...",
-      "tokenCount": 595,
+      "case_id": "500Nv000005HMfaIAG",
+      "summary": "# Some content ...",
       "distance": 0.40739564321624144,
     },
     // more results...
