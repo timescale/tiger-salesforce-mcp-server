@@ -2,6 +2,8 @@
 
 A wrapper around our Salesforce database, which contains embedded case summaries. This provides some focused tools to LLMs via the [Model Context Protocol](https://modelcontextprotocol.io/introduction).
 
+The raw data is sourced from Salesforce via a [Fivetran connection](https://fivetran.com/dashboard/connections/apparel_slider/status?groupId=harsh_overturned&service=salesforce&syncChartPeriod=1%20Day). This populates a schema in a TimescaleDB database. A separate process generates LLM summaries of the support cases, and then embeddings of those summaries. This service searches those summaries.
+
 ## API
 
 All methods are exposed as MCP tools and REST API endpoints.
