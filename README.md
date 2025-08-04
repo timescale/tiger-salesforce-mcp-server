@@ -142,6 +142,11 @@ kubectl -n savannah-system create secret generic tiger-salesforce-mcp-server-ope
   --dry-run=client \
   --from-literal=apiKey="sk-svcacct-" \
   -o yaml | kubeseal -o yaml
+
+kubectl -n savannah-system create secret generic tiger-salesforce-mcp-server-logfire \
+  --dry-run=client \
+  --from-literal=token="pylf_v1_us_" \
+  -o yaml | kubeseal -o yaml
 ```
 
 Update `./chart/values/dev.yaml` with the output.
