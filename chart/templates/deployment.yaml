@@ -62,6 +62,8 @@ spec:
               memory: {{ .Values.resources.limits.memory }}
 
           env:
+            - name: SALESFORCE_DOMAIN
+              value: {{ .Values.salesforce.domain }}
             - name: PGHOST
               valueFrom:
                 secretKeyRef:

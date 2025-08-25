@@ -44,8 +44,6 @@ Searches the Salesforce case summaries for relevant entries based on a semantic 
 }
 ```
 
-(the REST API returns a JSON array, just the content of the `results` field above)
-
 ## Development
 
 Cloning and running the server locally.

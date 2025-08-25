@@ -32,13 +32,18 @@ type EmbeddedDoc = z.infer<typeof zEmbeddedDoc>;
 
 const outputSchema = {
   results: z.array(zEmbeddedDoc),
+  urlTemplate: z
+    .string()
+    .optional()
+    .describe(
+      'URL template to use to link to Salesforce cases. Substitute {case_id} with the actual case ID.',
+    ),
 } as const;
 
 export const semanticSearchSalesforceCaseSummariesFactory: ApiFactory<
   ServerContext,
   typeof inputSchema,
-  typeof outputSchema,
-  z.infer<(typeof outputSchema)['results']>
+  typeof outputSchema
 > = ({ pgPool }) => ({
   name: 'semanticSearchSalesforceCaseSummaries',
   method: 'get',
@@ -84,7 +89,11 @@ LIMIT $2
 
     return {
       results: result.rows,
+      ...(process.env.SALESFORCE_DOMAIN
+        ? {
+            urlTemplate: `https://${process.env.SALESFORCE_DOMAIN}/lightning/r/Case/{case_id}/view`,
+          }
+        : {}),
     };
   },
-  pickResult: (r) => r.results,
 });

@@ -28,6 +28,9 @@ resources:
 podAnnotations:
   kubectl.kubernetes.io/default-container: tiger-salesforce-mcp-server
 
+salesforce:
+  domain: timescale.lightning.force.com
+
 logfire:
   token: ''
   tracesEndpoint: https://logfire-api.pydantic.dev/v1/traces

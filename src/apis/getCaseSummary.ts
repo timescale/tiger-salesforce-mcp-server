@@ -14,6 +14,7 @@ const inputSchema = {
 const zCaseSummary = z.object({
   case_id: z.string().describe('The unique identifier of the case summary.'),
   summary: z.string().describe('The content of the case summary.'),
+  url: z.string().optional().describe('The URL of the case summary.'),
 });
 
 type CaseSummary = z.infer<typeof zCaseSummary>;
@@ -56,7 +57,12 @@ WHERE case_id = $1
     }
 
     return {
-      result: row,
+      result: process.env.SALESFORCE_DOMAIN
+        ? {
+            ...row,
+            url: `https://${process.env.SALESFORCE_DOMAIN}/lightning/r/Case/${case_id}/view`,
+          }
+        : row,
     };
   },
 });
