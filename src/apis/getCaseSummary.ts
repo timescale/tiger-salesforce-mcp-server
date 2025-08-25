@@ -47,8 +47,16 @@ WHERE case_id = $1
       [case_id],
     );
 
+    const [row] = result.rows;
+
+    if (!row) {
+      throw new Error(
+        `No case summary found for case_id: ${case_id}. The summary may not have been generated yet. Double-check the id, and try again later.`,
+      );
+    }
+
     return {
-      result: result.rows[0],
+      result: row,
     };
   },
 });
