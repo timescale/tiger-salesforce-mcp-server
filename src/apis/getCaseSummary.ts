@@ -28,7 +28,7 @@ export const getCaseSummaryFactory: ApiFactory<
   typeof inputSchema,
   typeof outputSchema
 > = ({ pgPool }) => ({
-  name: 'getCaseSummary',
+  name: 'get_case_summary',
   method: 'get',
   route: '/case-summary',
   config: {
