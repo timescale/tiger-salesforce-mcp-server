@@ -45,7 +45,7 @@ export const semanticSearchSalesforceCaseSummariesFactory: ApiFactory<
   typeof inputSchema,
   typeof outputSchema
 > = ({ pgPool }) => ({
-  name: 'semanticSearchSalesforceCaseSummaries',
+  name: 'semantic_search_salesforce_case_summaries',
   method: 'get',
   route: '/semantic-search/salesforce-case-summaries',
   config: {
