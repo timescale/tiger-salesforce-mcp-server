@@ -50,10 +50,14 @@ export const semanticSearchSalesforceCaseSummariesFactory: ApiFactory<
   route: '/semantic-search/salesforce-case-summaries',
   config: {
     title: 'Semantic Search of Salesforce Case Summaries',
-    description: `This retrieves relevant Salesforce support case summaries based on a natural language query.
-Use this to find solutions to problems experienced by our customers in the past.
+    description: `
+This retrieves relevant Salesforce support case summaries based on a natural language query.
+Use this to find solutions to problems experienced by customers in the past.
 
-Always cite your source. When referring to specific cases, always use the provided \`url_template\` to create a link to the original case by its \`case_id\`.`,
+Always cite your sources.
+When mentioning a case in your response, format it as an inline link, as supported by the response platform.
+Always use the provided \`url_template\` to create a link to the original case by its \`case_id\`.
+`.trim(),
     inputSchema,
     outputSchema,
   },
