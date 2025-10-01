@@ -32,7 +32,7 @@ type EmbeddedDoc = z.infer<typeof zEmbeddedDoc>;
 
 const outputSchema = {
   results: z.array(zEmbeddedDoc),
-  urlTemplate: z
+  url_template: z
     .string()
     .optional()
     .describe(
@@ -50,8 +50,10 @@ export const semanticSearchSalesforceCaseSummariesFactory: ApiFactory<
   route: '/semantic-search/salesforce-case-summaries',
   config: {
     title: 'Semantic Search of Salesforce Case Summaries',
-    description:
-      'This retrieves relevant Salesforce support case summaries based on a natural language query. Use this to find solutions to problems experienced by our customers in the past.',
+    description: `This retrieves relevant Salesforce support case summaries based on a natural language query.
+Use this to find solutions to problems experienced by our customers in the past.
+
+Always cite your source. When referring to specific cases, always use the provided \`url_template\` to create a link to the original case by its \`case_id\`.`,
     inputSchema,
     outputSchema,
   },
@@ -91,7 +93,7 @@ LIMIT $2
       results: result.rows,
       ...(process.env.SALESFORCE_DOMAIN
         ? {
-            urlTemplate: `https://${process.env.SALESFORCE_DOMAIN}/lightning/r/Case/{case_id}/view`,
+            url_template: `https://${process.env.SALESFORCE_DOMAIN}/lightning/r/Case/{case_id}/view`,
           }
         : {}),
     };
