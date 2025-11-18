@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { ApiFactory } from '@tigerdata/mcp-boilerplate';
+import { ApiFactory, InferSchema } from '@tigerdata/mcp-boilerplate';
 import { embed } from 'ai';
 import { z } from 'zod';
 import { ServerContext } from '../types.js';
@@ -61,7 +61,7 @@ Always use the provided \`url_template\` to create a link to the original case b
     inputSchema,
     outputSchema,
   },
-  fn: async ({ prompt, limit }) => {
+  fn: async ({ prompt, limit }): Promise<InferSchema<typeof outputSchema>> => {
     const { embedding } = await embed({
       model: openai.embedding('text-embedding-3-small'),
       value: prompt,
@@ -95,11 +95,9 @@ LIMIT $2
 
     return {
       results: result.rows,
-      ...(process.env.SALESFORCE_DOMAIN
-        ? {
-            url_template: `https://${process.env.SALESFORCE_DOMAIN}/lightning/r/Case/{case_id}/view`,
-          }
-        : {}),
+      url_template: process.env.SALESFORCE_DOMAIN
+        ? `https://${process.env.SALESFORCE_DOMAIN}/lightning/r/Case/{case_id}/view`
+        : undefined,
     };
   },
 });

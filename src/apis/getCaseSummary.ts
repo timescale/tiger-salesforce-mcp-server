@@ -1,4 +1,4 @@
-import { ApiFactory } from '@tigerdata/mcp-boilerplate';
+import { ApiFactory, InferSchema } from '@tigerdata/mcp-boilerplate';
 import { z } from 'zod';
 import { ServerContext } from '../types.js';
 
@@ -38,7 +38,7 @@ export const getCaseSummaryFactory: ApiFactory<
     inputSchema,
     outputSchema,
   },
-  fn: async ({ case_id }) => {
+  fn: async ({ case_id }): Promise<InferSchema<typeof outputSchema>> => {
     const result = await pgPool.query<CaseSummary>(
       /* sql */ `
 SELECT case_id, summary
