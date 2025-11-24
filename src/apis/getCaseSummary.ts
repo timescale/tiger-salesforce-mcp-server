@@ -12,7 +12,7 @@ const inputSchema = {
 } as const;
 
 const zCaseSummary = z.object({
-  case_id: z.string().describe('The unique identifier of the case summary.'),
+  case_id: z.string().describe('The unique identifier of the case.'),
   summary: z.string().describe('The content of the case summary.'),
   url: z.string().optional().describe('The URL of the case summary.'),
 });
