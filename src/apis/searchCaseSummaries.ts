@@ -93,18 +93,20 @@ Always use the provided \`url_template\` to create a link to the original case b
       /* sql */ `
 WITH distances AS (
   SELECT
-    case_summary_embedding.case_id,
+    cs.case_id,
     summary,
-    case.updated_at,
+    cs.updated_at,
     CASE WHEN $1::vector(1536) IS NULL THEN NULL ELSE embedding <=> $1::vector(1536) END AS distance
-  FROM public.case_summary_embedding
-  JOIN salesforce.case
-      ON cases.id = case_summary_embedding.case_id
+  FROM public.case_summary_embedding as cs
+  JOIN salesforce."case" AS c
+      ON c.id = cs.case_id
   WHERE
-  (($2::TIMESTAMPTZ IS NULL) OR case.updated_at >= $2::TIMESTAMPTZ)
-  AND ($3::TIMESTAMPTZ IS NULL OR case.updated_at <= $3::TIMESTAMPTZ)
-  AND ($4::TEXT IS NULL OR lower(cloud_project_id_c) = $4::TEXT)
-  AND ($5::TEXT IS NULL OR lower(cloud_service_id_c) = $5::TEXT)
+  (($2::TIMESTAMPTZ IS NULL) OR cs.updated_at >= $2::TIMESTAMPTZ)
+  AND ($3::TIMESTAMPTZ IS NULL OR cs.updated_at <= $3::TIMESTAMPTZ)
+  AND ($4::TEXT IS NULL OR lower(c.cloud_project_id_c) = $4::TEXT)
+
+  -- the service id field can be a comma delimited list
+  AND ($5::TEXT IS NULL OR c.cloud_service_id_c ILIKE '%'||$5::text||'%')
 ),
 ranked AS (
   SELECT
