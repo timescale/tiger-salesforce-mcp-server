@@ -1,6 +1,7 @@
 import { ApiFactory, InferSchema } from '@tigerdata/mcp-boilerplate';
 import { z } from 'zod';
-import { ServerContext } from '../types.js';
+import { CaseSummary, ServerContext, zCaseSummary } from '../types.js';
+import { addUrlToCaseSummary } from '../utils.js';
 
 const inputSchema = {
   case_id: z
@@ -10,14 +11,6 @@ const inputSchema = {
       'The unique identifier of the Salesforce case to retrieve the summary for.',
     ),
 } as const;
-
-const zCaseSummary = z.object({
-  case_id: z.string().describe('The unique identifier of the case.'),
-  summary: z.string().describe('The content of the case summary.'),
-  url: z.string().optional().describe('The URL of the case summary.'),
-});
-
-type CaseSummary = z.infer<typeof zCaseSummary>;
 
 const outputSchema = {
   result: zCaseSummary,
@@ -41,7 +34,7 @@ export const getCaseSummaryFactory: ApiFactory<
   fn: async ({ case_id }): Promise<InferSchema<typeof outputSchema>> => {
     const result = await pgPool.query<CaseSummary>(
       /* sql */ `
-SELECT case_id, summary
+SELECT case_id, summary, updated_at
 FROM public.case_summary
 WHERE case_id = $1
 `,
@@ -57,12 +50,7 @@ WHERE case_id = $1
     }
 
     return {
-      result: process.env.SALESFORCE_DOMAIN
-        ? {
-            ...row,
-            url: `https://${process.env.SALESFORCE_DOMAIN}/lightning/r/Case/${case_id}/view`,
-          }
-        : row,
+      result: addUrlToCaseSummary(row),
     };
   },
 });

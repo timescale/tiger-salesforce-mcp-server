@@ -5,9 +5,20 @@ export interface ServerContext extends Record<string, unknown> {
   pgPool: Pool;
 }
 
-const zEmbeddedDoc = z.object({
-  case_id: z.string().describe('The unique identifier of the case summary.'),
+export const zCaseSummary = z.object({
+  case_id: z.string().describe('The unique identifier of the case.'),
   summary: z.string().describe('The content of the case summary.'),
+  updated_at: z.coerce
+    .date()
+    .nullish()
+    .describe('The datetime of when the case summary was last updated.'),
+  url: z.string().optional().describe('The URL of the case summary.'),
+});
+
+export type CaseSummary = z.infer<typeof zCaseSummary>;
+
+export const zCaseSummaryWithSemanticDistance = z.object({
+  ...zCaseSummary.shape,
   distance: z
     .number()
     .describe(
@@ -16,4 +27,6 @@ const zEmbeddedDoc = z.object({
     .nullish(),
 });
 
-export type EmbeddedDoc = z.infer<typeof zEmbeddedDoc>;
+export type CaseSummaryWithSemanticDistance = z.infer<
+  typeof zCaseSummaryWithSemanticDistance
+>;

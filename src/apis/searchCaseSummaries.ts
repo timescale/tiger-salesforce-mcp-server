@@ -2,7 +2,11 @@ import { openai } from '@ai-sdk/openai';
 import { ApiFactory, InferSchema } from '@tigerdata/mcp-boilerplate';
 import { embed } from 'ai';
 import { z } from 'zod';
-import { EmbeddedDoc, ServerContext, zEmbeddedDoc } from '../types.js';
+import {
+  CaseSummaryWithSemanticDistance,
+  ServerContext,
+  zCaseSummaryWithSemanticDistance,
+} from '../types.js';
 
 const inputSchema = {
   limit: z.coerce
@@ -42,7 +46,7 @@ const inputSchema = {
 } as const;
 
 const outputSchema = {
-  results: z.array(zEmbeddedDoc),
+  results: z.array(zCaseSummaryWithSemanticDistance),
   url_template: z
     .string()
     .optional()
@@ -89,7 +93,7 @@ Always use the provided \`url_template\` to create a link to the original case b
         })
       : { embedding: null };
 
-    const result = await pgPool.query<EmbeddedDoc>(
+    const result = await pgPool.query<CaseSummaryWithSemanticDistance>(
       /* sql */ `
 WITH distances AS (
   SELECT
@@ -101,12 +105,12 @@ WITH distances AS (
   JOIN salesforce."case" AS c
       ON c.id = cs.case_id
   WHERE
-  (($2::TIMESTAMPTZ IS NULL) OR cs.updated_at >= $2::TIMESTAMPTZ)
-  AND ($3::TIMESTAMPTZ IS NULL OR cs.updated_at <= $3::TIMESTAMPTZ)
-  AND ($4::TEXT IS NULL OR lower(c.cloud_project_id_c) = $4::TEXT)
+    (($2::TIMESTAMPTZ IS NULL) OR cs.updated_at >= $2::TIMESTAMPTZ)
+    AND ($3::TIMESTAMPTZ IS NULL OR cs.updated_at <= $3::TIMESTAMPTZ)
+    AND ($4::TEXT IS NULL OR lower(c.cloud_project_id_c) = $4::TEXT)
 
-  -- the service id field can be a comma delimited list
-  AND ($5::TEXT IS NULL OR c.cloud_service_id_c ILIKE '%'||$5::text||'%')
+    -- the service id field can be a comma delimited list
+    AND ($5::TEXT IS NULL OR c.cloud_service_id_c ILIKE '%'||$5::text||'%')
 ),
 ranked AS (
   SELECT
@@ -117,7 +121,7 @@ ranked AS (
     ROW_NUMBER() OVER (PARTITION BY case_id ORDER BY distance NULLS LAST, case_id) as rn
   FROM distances
 )
-SELECT case_id, summary, distance
+SELECT case_id, summary, distance, updated_at
 FROM ranked
 WHERE rn = 1
 ${hasSemanticSearch ? 'ORDER BY distance' : 'ORDER BY updated_at DESC'}
