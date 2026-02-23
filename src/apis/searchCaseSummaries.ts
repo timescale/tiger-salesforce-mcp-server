@@ -64,10 +64,14 @@ export const searchCaseSummaries: ApiFactory<
   method: 'get',
   route: '/search/case-summaries',
   config: {
-    title: 'Search of Salesforce Case Summaries',
+    title: 'Search Salesforce Case Summaries',
     description: `
-This retrieves relevant Salesforce support case summaries based search critera, including natural language query.
-Use this to find solutions to problems experienced by customers in the past.
+Search Salesforce support case summaries using any combination of parameters:
+- Natural language semantic search via \`prompt\`
+- Filter by project ID or service ID
+- Filter by date range using \`timestampStart\` and/or \`timestampEnd\` (based on when the case summary was last updated)
+
+Use this to find cases relevant to a customer issue, a specific project or service, or cases updated within a given time window.
 
 Always cite your sources.
 When mentioning a case in your response, format it as an inline link, as supported by the response platform.
