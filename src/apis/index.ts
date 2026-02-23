@@ -1,9 +1,9 @@
 import { getCaseSummaryFactory } from './getCaseSummary.js';
 import { getCaseDetailsFactory } from './getCaseDetails.js';
-import { semanticSearchSalesforceCaseSummariesFactory } from './semanticSearchSalesforceCaseSummaries.js';
+import { searchCaseSummaries } from './searchCaseSummaries.js';
 
 export const apiFactories = [
   getCaseSummaryFactory,
   getCaseDetailsFactory,
-  semanticSearchSalesforceCaseSummariesFactory,
+  searchCaseSummaries,
 ] as const;
