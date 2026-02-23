@@ -28,80 +28,80 @@ All Salesforce data is stored in the `salesforce` schema. Note: `case` is a rese
 
 Primary support case entity.
 
-| Column | Type | Notes |
-| --- | --- | --- |
-| id | varchar(18) | PK |
-| case_number | varchar(90) | Human-readable case number |
-| subject | varchar(765) | Case subject |
-| description | varchar(32000) | Case description |
-| status | varchar(765) | Open, Closed, etc. |
-| priority | varchar(765) | Low, Medium, High |
-| origin | varchar(765) | Email, Web, Phone, etc. |
-| type | varchar(765) | Case type |
-| reason | varchar(765) | Case reason |
-| is_closed | boolean | |
-| is_escalated | boolean | |
-| closed_date | timestamptz | |
-| created_date | timestamptz | |
-| last_modified_date | timestamptz | |
-| is_deleted | boolean | Soft delete flag |
-| contact_id | varchar(18) | FK -> contact |
-| account_id | varchar(18) | FK -> account |
-| owner_id | varchar(18) | FK -> user |
-| entitlement_id | varchar(18) | FK -> entitlement |
-| opportunity_c | varchar(18) | FK -> opportunity (custom) |
-| cloud_project_id_c | varchar(765) | Cloud project ID (custom) |
-| cloud_service_id_c | varchar(765) | Comma-delimited service IDs (custom) |
+| Column             | Type           | Notes                                |
+| ------------------ | -------------- | ------------------------------------ |
+| id                 | varchar(18)    | PK                                   |
+| case_number        | varchar(90)    | Human-readable case number           |
+| subject            | varchar(765)   | Case subject                         |
+| description        | varchar(32000) | Case description                     |
+| status             | varchar(765)   | Open, Closed, etc.                   |
+| priority           | varchar(765)   | Low, Medium, High                    |
+| origin             | varchar(765)   | Email, Web, Phone, etc.              |
+| type               | varchar(765)   | Case type                            |
+| reason             | varchar(765)   | Case reason                          |
+| is_closed          | boolean        |                                      |
+| is_escalated       | boolean        |                                      |
+| closed_date        | timestamptz    |                                      |
+| created_date       | timestamptz    |                                      |
+| last_modified_date | timestamptz    |                                      |
+| is_deleted         | boolean        | Soft delete flag                     |
+| contact_id         | varchar(18)    | FK -> contact                        |
+| account_id         | varchar(18)    | FK -> account                        |
+| owner_id           | varchar(18)    | FK -> user                           |
+| entitlement_id     | varchar(18)    | FK -> entitlement                    |
+| opportunity_c      | varchar(18)    | FK -> opportunity (custom)           |
+| cloud_project_id_c | varchar(765)   | Cloud project ID (custom)            |
+| cloud_service_id_c | varchar(765)   | Comma-delimited service IDs (custom) |
 
 ### salesforce.account
 
-| Column | Type | Notes |
-| --- | --- | --- |
-| id | varchar(18) | PK |
-| name | varchar(765) | Company name |
-| type | varchar(765) | Account type |
-| industry | varchar(765) | Industry classification |
-| account_tier_c | varchar(765) | Tier level (custom) |
-| account_stage_c | varchar(765) | Lifecycle stage (custom) |
-| account_health_c | varchar(765) | Health score (custom) |
-| customer_start_date_c | date | Customer since (custom) |
-| customer_end_date_c | date | Churned date (custom) |
-| current_billable_mrr_c | numeric | Current MRR (custom) |
-| arr_as_of_last_month_c | numeric | ARR last month (custom) |
-| churn_risk_c | boolean | Churn risk flag (custom) |
-| owner_id | varchar(18) | FK -> user |
-| parent_id | varchar(18) | FK -> account |
-| customer_success_manager_c | varchar(18) | FK -> user (custom) |
-| is_deleted | boolean | Soft delete flag |
+| Column                     | Type         | Notes                    |
+| -------------------------- | ------------ | ------------------------ |
+| id                         | varchar(18)  | PK                       |
+| name                       | varchar(765) | Company name             |
+| type                       | varchar(765) | Account type             |
+| industry                   | varchar(765) | Industry classification  |
+| account_tier_c             | varchar(765) | Tier level (custom)      |
+| account_stage_c            | varchar(765) | Lifecycle stage (custom) |
+| account_health_c           | varchar(765) | Health score (custom)    |
+| customer_start_date_c      | date         | Customer since (custom)  |
+| customer_end_date_c        | date         | Churned date (custom)    |
+| current_billable_mrr_c     | numeric      | Current MRR (custom)     |
+| arr_as_of_last_month_c     | numeric      | ARR last month (custom)  |
+| churn_risk_c               | boolean      | Churn risk flag (custom) |
+| owner_id                   | varchar(18)  | FK -> user               |
+| parent_id                  | varchar(18)  | FK -> account            |
+| customer_success_manager_c | varchar(18)  | FK -> user (custom)      |
+| is_deleted                 | boolean      | Soft delete flag         |
 
 ### salesforce.contact
 
-| Column | Type | Notes |
-| --- | --- | --- |
-| id | varchar(18) | PK |
-| name | varchar(363) | Full name (computed) |
-| first_name | varchar(120) | |
-| last_name | varchar(240) | |
-| email | varchar(240) | |
-| phone | varchar(120) | |
-| title | varchar(384) | Job title |
-| account_id | varchar(18) | FK -> account |
-| owner_id | varchar(18) | FK -> user |
-| support_contact_c | boolean | Is support contact (custom) |
-| timescale_champion_c | boolean | Is a champion (custom) |
-| role_c | varchar(600) | Role classification (custom) |
-| is_deleted | boolean | Soft delete flag |
+| Column               | Type         | Notes                        |
+| -------------------- | ------------ | ---------------------------- |
+| id                   | varchar(18)  | PK                           |
+| name                 | varchar(363) | Full name (computed)         |
+| first_name           | varchar(120) |                              |
+| last_name            | varchar(240) |                              |
+| email                | varchar(240) |                              |
+| phone                | varchar(120) |                              |
+| title                | varchar(384) | Job title                    |
+| account_id           | varchar(18)  | FK -> account                |
+| owner_id             | varchar(18)  | FK -> user                   |
+| support_contact_c    | boolean      | Is support contact (custom)  |
+| timescale_champion_c | boolean      | Is a champion (custom)       |
+| role_c               | varchar(600) | Role classification (custom) |
+| is_deleted           | boolean      | Soft delete flag             |
 
 ### public.case_summary_embedding
 
 Stores AI-generated case summaries with vector embeddings for semantic search.
 
-| Column | Type | Notes |
-| --- | --- | --- |
-| case_id | varchar(18) | FK -> salesforce."case".id |
-| summary | text | AI-generated summary |
-| embedding | vector(1536) | text-embedding-3-small |
-| updated_at | timestamptz | When summary was last generated |
+| Column     | Type         | Notes                           |
+| ---------- | ------------ | ------------------------------- |
+| case_id    | varchar(18)  | FK -> salesforce."case".id      |
+| summary    | text         | AI-generated summary            |
+| embedding  | vector(1536) | text-embedding-3-small          |
+| updated_at | timestamptz  | When summary was last generated |
 
 ### Sample Query: Case with Related Entities
 
