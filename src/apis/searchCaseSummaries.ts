@@ -1,0 +1,141 @@
+import { openai } from '@ai-sdk/openai';
+import { ApiFactory, InferSchema } from '@tigerdata/mcp-boilerplate';
+import { embed } from 'ai';
+import { z } from 'zod';
+import { EmbeddedDoc, ServerContext, zEmbeddedDoc } from '../types.js';
+
+const inputSchema = {
+  limit: z.coerce
+    .number()
+    .min(1)
+    .nullable()
+    .describe('The maximum number of matches to return. Defaults to 10.'),
+  serviceId: z
+    .string()
+    .min(10)
+    .nullable()
+    .describe('The service id to filter on.'),
+  projectId: z
+    .string()
+    .min(10)
+    .nullable()
+    .describe('The project id to filter on.'),
+  prompt: z
+    .string()
+    .min(1)
+    .nullable()
+    .describe(
+      'The natural language query used to search the TimescaleDB documentation for relevant information.',
+    ),
+  timestampStart: z.coerce
+    .date()
+    .nullable()
+    .describe(
+      'Optional start date for the case summary range. Filters on the updated at column. When null, will include all historic data.',
+    ),
+  timestampEnd: z.coerce
+    .date()
+    .nullable()
+    .describe(
+      'Optional end date for the message range. Filters on the updated at column. Defaults to the current time.',
+    ),
+} as const;
+
+const outputSchema = {
+  results: z.array(zEmbeddedDoc),
+  url_template: z
+    .string()
+    .optional()
+    .describe(
+      'URL template to use to link to Salesforce cases. Substitute {case_id} with the actual case ID.',
+    ),
+} as const;
+
+export const searchCaseSummaries: ApiFactory<
+  ServerContext,
+  typeof inputSchema,
+  typeof outputSchema
+> = ({ pgPool }) => ({
+  name: 'search_case_summaries',
+  method: 'get',
+  route: '/search/case-summaries',
+  config: {
+    title: 'Search of Salesforce Case Summaries',
+    description: `
+This retrieves relevant Salesforce support case summaries based search critera, including natural language query.
+Use this to find solutions to problems experienced by customers in the past.
+
+Always cite your sources.
+When mentioning a case in your response, format it as an inline link, as supported by the response platform.
+Always use the provided \`url_template\` to create a link to the original case by its \`case_id\`.
+`.trim(),
+    inputSchema,
+    outputSchema,
+  },
+  fn: async ({
+    prompt,
+    limit,
+    projectId,
+    serviceId,
+    timestampStart,
+    timestampEnd,
+  }): Promise<InferSchema<typeof outputSchema>> => {
+    const hasSemanticSearch = !!prompt;
+
+    const { embedding } = hasSemanticSearch
+      ? await embed({
+          model: openai.embedding('text-embedding-3-small'),
+          value: prompt,
+        })
+      : { embedding: null };
+
+    const result = await pgPool.query<EmbeddedDoc>(
+      /* sql */ `
+WITH distances AS (
+  SELECT
+    case_summary_embedding.case_id,
+    summary,
+    case.updated_at,
+    CASE WHEN $1::vector(1536) IS NULL THEN NULL ELSE embedding <=> $1::vector(1536) END AS distance
+  FROM public.case_summary_embedding
+  JOIN salesforce.case
+      ON cases.id = case_summary_embedding.case_id
+  WHERE
+  (($2::TIMESTAMPTZ IS NULL) OR case.updated_at >= $2::TIMESTAMPTZ)
+  AND ($3::TIMESTAMPTZ IS NULL OR case.updated_at <= $3::TIMESTAMPTZ)
+  AND ($4::TEXT IS NULL OR lower(cloud_project_id_c) = $4::TEXT)
+  AND ($5::TEXT IS NULL OR lower(cloud_service_id_c) = $5::TEXT)
+),
+ranked AS (
+  SELECT
+    case_id,
+    summary,
+    updated_at,
+    distance,
+    ROW_NUMBER() OVER (PARTITION BY case_id ORDER BY distance NULLS LAST, case_id) as rn
+  FROM distances
+)
+SELECT case_id, summary, distance
+FROM ranked
+WHERE rn = 1
+${hasSemanticSearch ? 'ORDER BY distance' : 'ORDER BY updated_at DESC'}
+LIMIT $6
+`,
+      [
+        hasSemanticSearch ? JSON.stringify(embedding) : null,
+        timestampStart?.toISOString(),
+        timestampEnd?.toISOString(),
+        projectId,
+        serviceId,
+        limit || 10,
+      ],
+    );
+
+    return {
+      results: result.rows,
+      url_template: process.env.SALESFORCE_DOMAIN
+        ? `https://${process.env.SALESFORCE_DOMAIN}/lightning/r/Case/{case_id}/view`
+        : undefined,
+    };
+  },
+});
