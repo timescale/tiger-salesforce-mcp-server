@@ -26,16 +26,16 @@ const outputSchema = {
     .describe('URL template to view the accounts in Salesforce'),
 } as const;
 
-export const getAccountDetailsFactory: ApiFactory<
+export const getAccountsFactory: ApiFactory<
   ServerContext,
   typeof inputSchema,
   typeof outputSchema
 > = ({ pgPool }) => ({
-  name: 'get_account_details',
+  name: 'get_accountws',
   method: 'get',
-  route: '/account-details',
+  route: '/accounts',
   config: {
-    title: 'Get Salesforce Account Details',
+    title: 'Get Salesforce Accounts',
     description: `
 Search for Salesforce accounts matching a keyword. Use this tool to find the account ID for a given company name.
 
