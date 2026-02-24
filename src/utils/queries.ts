@@ -3,6 +3,7 @@ import { Account, AccountContact } from '../types.js';
 import { log } from '@tigerdata/mcp-boilerplate';
 
 interface AccountQueryOptions {
+  includePlanDetails: boolean;
   includeRevenue: boolean;
   includeLocation: boolean;
   includeContacts: boolean;
@@ -66,9 +67,10 @@ export async function queryAccounts(
   params: AccountQueryById | AccountQueryByKeyword,
 ): Promise<Account | Account[]> {
   const {
-    includeRevenue,
     includeContacts,
+    includePlanDetails,
     includeLocation,
+    includeRevenue,
     includeUsage,
     singleAccount: useAccountId,
   } = params;
@@ -82,9 +84,12 @@ SELECT
   a.type,
   a.website,
   a.industry,
-  a.account_status_c,
   a.description,
   a.number_of_employees::integer,
+  
+${
+  includePlanDetails
+    ? `a.account_status_c,
   a.annual_revenue,
   a.nps_score_c,
   a.account_tier_c,
@@ -99,7 +104,10 @@ SELECT
   a.billing_category_c,
   a.customer_use_case_c,
   a.company_industry_tag_c,
-  a.mst_c,
+  a.mst_c,`
+    : ''
+}
+  
 
   ${
     includeRevenue

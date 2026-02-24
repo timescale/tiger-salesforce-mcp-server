@@ -18,6 +18,11 @@ const inputSchema = {
     .describe(
       'The Salesforce Account ID to retrieve. Either account_id or account_keyword is required.',
     ),
+  includePlanDetails: z
+    .boolean()
+    .describe(
+      'Include plan and account health details (status, tier, stage, health, NPS score, plan type, churn risk, billing category, use case, industry tag, MST flag, and customer dates).',
+    ),
   includeRevenue: z
     .boolean()
     .describe(
@@ -80,6 +85,7 @@ Always link to the account using the returned \`url\`.
   },
   fn: async ({
     account_id,
+    includePlanDetails,
     includeRevenue,
     includeLocation,
     includeContacts,
@@ -88,6 +94,7 @@ Always link to the account using the returned \`url\`.
     const account = await queryAccounts(pgPool, {
       singleAccount: true,
       accountId: account_id,
+      includePlanDetails,
       includeContacts,
       includeLocation,
       includeRevenue,
