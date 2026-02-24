@@ -55,7 +55,6 @@ ORDER BY last_name, first_name
   );
 };
 
-
 export async function queryAccounts(
   pool: Pool,
   params: AccountQueryById,
