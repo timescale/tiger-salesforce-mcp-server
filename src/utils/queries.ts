@@ -55,6 +55,7 @@ ORDER BY last_name, first_name
   );
 };
 
+
 export async function queryAccounts(
   pool: Pool,
   params: AccountQueryById,
@@ -80,92 +81,86 @@ export async function queryAccounts(
   const result = await pool.query<Account>(
     /* sql */ `
 SELECT
-  -- Core (always returned)
-  a.id,
-  a.name,
-  a.type,
-  a.website,
-  a.industry,
-  a.description,
-  a.number_of_employees::integer,
-  
-${
-  includePlanDetails
-    ? `a.account_status_c,
-  a.nps_score_c,
-  a.account_tier_c,
-  a.account_stage_c,
-  a.account_health_c,
-  a.customer_start_date_c,
-  a.customer_end_date_c,
-  a.churn_risk_c,
-  a.plan_type_c,
-  a.free_plan_started_c,
-  a.free_plan_conversion_date_c,
-  a.billing_category_c,
-  a.customer_use_case_c,
-  a.company_industry_tag_c,
-  a.mst_c,`
-    : ''
-}
-  
-
-  ${
-    includeRevenue
-      ? `a.annual_revenue,
-  a.current_billable_mrr_c,
-  a.arr_as_of_last_month_c,
-  a.lifetime_value_c,`
-      : ''
-  }
-  ${
-    includeLocation
-      ? `a.billing_street,
-  a.billing_city,
-  a.billing_state,
-  a.billing_postal_code,
-  a.billing_country,
-  a.billing_country_code,
-  a.shipping_street,
-  a.shipping_city,
-  a.shipping_state,
-  a.shipping_postal_code,
-  a.shipping_country,`
-      : ''
-  }
-
-${
-  includeInternalContacts
-    ? `lse.name AS lead_support_engineer_name,
-  ps.name AS product_sponsor_name,
-  csm.name AS customer_success_manager_name,
-  ae.name as account_executive_name`
-    : ''
-}
-  
-
-  ${
-    includeUsage
-      ? `, a.actively_consuming_c,
-  a.cloud_provider_c,
-  a.number_of_services_c,
-  a.size_of_services_c,
-  a.project_id_c,
-  a.service_id_c,
-  a.total_active_storage_c,
-  a.total_active_cpu_c,
-  a.weekly_page_views_c,
-  a.cloud_trial_c`
-      : ''
-  }
-
+  ${[
+    'a.id',
+    'a.name',
+    'a.type',
+    'a.website',
+    'a.industry',
+    'a.description',
+    'a.number_of_employees::integer',
+    ...(includePlanDetails
+      ? [
+          'a.account_status_c',
+          'a.nps_score_c',
+          'a.account_tier_c',
+          'a.account_stage_c',
+          'a.account_health_c',
+          'a.customer_start_date_c',
+          'a.customer_end_date_c',
+          'a.churn_risk_c',
+          'a.plan_type_c',
+          'a.free_plan_started_c',
+          'a.free_plan_conversion_date_c',
+          'a.billing_category_c',
+          'a.customer_use_case_c',
+          'a.company_industry_tag_c',
+          'a.mst_c',
+        ]
+      : []),
+    ...(includeRevenue
+      ? [
+          'a.annual_revenue',
+          'a.current_billable_mrr_c',
+          'a.arr_as_of_last_month_c',
+          'a.lifetime_value_c',
+        ]
+      : []),
+    ...(includeLocation
+      ? [
+          'a.billing_street',
+          'a.billing_city',
+          'a.billing_state',
+          'a.billing_postal_code',
+          'a.billing_country',
+          'a.billing_country_code',
+          'a.shipping_street',
+          'a.shipping_city',
+          'a.shipping_state',
+          'a.shipping_postal_code',
+          'a.shipping_country',
+        ]
+      : []),
+    ...(includeInternalContacts
+      ? [
+          'lse.name AS lead_support_engineer_name',
+          'ps.name AS product_sponsor_name',
+          'csm.name AS customer_success_manager_name',
+          'ae.name AS account_executive_name',
+        ]
+      : []),
+    ...(includeUsage
+      ? [
+          'a.actively_consuming_c',
+          'a.cloud_provider_c',
+          'a.number_of_services_c',
+          'a.size_of_services_c',
+          'a.project_id_c',
+          'a.service_id_c',
+          'a.total_active_storage_c',
+          'a.total_active_cpu_c',
+          'a.weekly_page_views_c',
+          'a.cloud_trial_c',
+        ]
+      : []),
+  ].join(',\n  ')}
 FROM salesforce.account a
 ${
   includeInternalContacts
-    ? ` LEFT JOIN salesforce.user lse ON lse.id = a.lead_support_engineer_c
+    ? `LEFT JOIN salesforce.user lse ON lse.id = a.lead_support_engineer_c
   LEFT JOIN salesforce.user ps ON ps.id = a.product_sponsor_c
   LEFT JOIN salesforce.user csm ON csm.id = a.customer_success_manager_c
-  LEFT join salesforce.user ae on ae.id = a.owner_id`
+  LEFT JOIN salesforce.user ae ON ae.id = a.owner_id`
     : ''
 }
  
