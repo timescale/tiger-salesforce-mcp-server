@@ -3,12 +3,12 @@ import { Account, AccountContact } from '../types.js';
 import { log } from '@tigerdata/mcp-boilerplate';
 
 interface AccountQueryOptions {
-  includePlanDetails: boolean;
-  includeRevenue: boolean;
-  includeLocation: boolean;
-  includeInternalContacts: boolean;
-  includeContacts: boolean;
-  includeUsage: boolean;
+  includePlanDetails?: boolean;
+  includeRevenue?: boolean;
+  includeLocation?: boolean;
+  includeInternalContacts?: boolean;
+  includeContacts?: boolean;
+  includeUsage?: boolean;
 }
 
 interface AccountQueryById extends AccountQueryOptions {
@@ -74,7 +74,7 @@ export async function queryAccounts(
     includeLocation,
     includeRevenue,
     includeUsage,
-    singleAccount: useAccountId,
+    singleAccount,
   } = params;
 
   const result = await pool.query<Account>(
@@ -170,19 +170,19 @@ ${
 }
  
 WHERE NOT COALESCE(a.is_deleted, false)
-  ${useAccountId ? 'AND a.id = $1' : "AND a.name ILIKE '%' || $1 || '%'"}
+  ${singleAccount ? 'AND a.id = $1' : "AND a.name ILIKE '%' || $1 || '%'"}
 ORDER BY a.name
 `,
-    [useAccountId ? params.accountId : params.nameKeyword],
+    [singleAccount ? params.accountId : params.nameKeyword],
   );
 
   if (!result.rowCount) {
     throw new Error(
-      `Could not find a matching account with ${useAccountId ? 'id' : 'name matching'} ${useAccountId ? params.accountId : params.nameKeyword}`,
+      `Could not find a matching account with ${singleAccount ? 'id' : 'name matching'} ${singleAccount ? params.accountId : params.nameKeyword}`,
     );
   }
 
-  if (useAccountId) {
+  if (singleAccount) {
     if (result.rowCount > 1) {
       throw new Error(
         `Found multiple accounts matching id ${params.accountId}`,
@@ -209,5 +209,5 @@ ORDER BY a.name
     });
   }
 
-  return useAccountId ? result.rows[0] : result.rows;
+  return singleAccount ? result.rows[0] : result.rows;
 }

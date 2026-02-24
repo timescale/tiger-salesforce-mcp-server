@@ -1,7 +1,6 @@
 import { ApiFactory, InferSchema } from '@tigerdata/mcp-boilerplate';
 import { z } from 'zod';
 import {
-  Account,
   ServerContext,
   zAccountContactInformation,
   zAccountCore,
