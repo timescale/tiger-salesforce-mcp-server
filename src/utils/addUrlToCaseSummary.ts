@@ -1,4 +1,4 @@
-import { CaseSummary } from './types.js';
+import { CaseSummary } from '../types.js';
 
 export const addUrlToCaseSummary = (caseSummary: CaseSummary): CaseSummary => {
   if (!process.env.SALESFORCE_DOMAN) {
