@@ -6,6 +6,7 @@ import {
   zAccountContactInformation,
   zAccountCore,
   zAccountLocationInformation,
+  zAccountPlanDetails,
   zAccountRevenueInformation,
   zAccountUsageInformation,
 } from '../types.js';
@@ -47,6 +48,7 @@ const outputSchema = {
   account: z
     .object({
       ...zAccountCore.shape,
+      ...zAccountPlanDetails.shape,
       ...zAccountRevenueInformation.shape,
       ...zAccountLocationInformation.shape,
       ...zAccountContactInformation.shape,

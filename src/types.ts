@@ -54,24 +54,8 @@ export const zAccountCore = z.object({
   type: z.string().nullish().describe('Account type'),
   website: z.string().nullish().describe('Company website'),
   industry: z.string().nullish().describe('Industry classification'),
-  billing_category_c: z
-    .string()
-    .nullish()
-    .describe('Describes the level e.g. performance / scale / enterprise'),
-  mst_c: z
-    .boolean()
-    .nullish()
-    .describe(
-      'Whether or not if the customer is MST. If true, customer is on a managed service, if false, customer is on a Cloud service.',
-    ),
   description: z.string().nullish().describe('Account description'),
   number_of_employees: z.number().nullish().describe('Employee count'),
-  account_status_c: z.string().nullish().describe('The status of the account'),
-  annual_revenue: z.number().nullish().describe('Annual revenue'),
-  company_industry_tag_c: z
-    .string()
-    .nullish()
-    .describe('Tags related to the company industry'),
   lead_support_engineer_name: z
     .string()
     .nullish()
@@ -84,9 +68,12 @@ export const zAccountCore = z.object({
   customer_success_manager_name: z
     .string()
     .nullish()
-    .describe('Customer success manager (CSM))'),
-  customer_use_case_c: z.string().nullish().describe('The use case'),
-  plan_type_c: z.string().nullish().describe('Type of plan'),
+    .describe('Customer success manager (CSM)'),
+});
+export type AccountCore = z.infer<typeof zAccountCore>;
+
+export const zAccountPlanDetails = z.object({
+  account_status_c: z.string().nullish().describe('The status of the account'),
   nps_score_c: z.number().nullish().describe('NPS score (custom)'),
   account_tier_c: z.string().nullish().describe('Account tier (custom)'),
   account_stage_c: z
@@ -105,6 +92,8 @@ export const zAccountCore = z.object({
     .date()
     .nullish()
     .describe('Churned date, if applicable (custom)'),
+  churn_risk_c: z.boolean().nullish().describe('Churn risk flag (custom)'),
+  plan_type_c: z.string().nullish().describe('Type of plan'),
   free_plan_started_c: z.coerce
     .date()
     .nullish()
@@ -113,9 +102,23 @@ export const zAccountCore = z.object({
     .date()
     .nullish()
     .describe('When the free plan converted to a paid plan'),
-  churn_risk_c: z.boolean().nullish().describe('Churn risk flag (custom)'),
+  billing_category_c: z
+    .string()
+    .nullish()
+    .describe('Describes the level e.g. performance / scale / enterprise'),
+  customer_use_case_c: z.string().nullish().describe('The use case'),
+  company_industry_tag_c: z
+    .string()
+    .nullish()
+    .describe('Tags related to the company industry'),
+  mst_c: z
+    .boolean()
+    .nullish()
+    .describe(
+      'Whether or not if the customer is MST. If true, customer is on a managed service, if false, customer is on a Cloud service.',
+    ),
 });
-export type AccountCore = z.infer<typeof zAccountCore>;
+export type AccountPlanDetails = z.infer<typeof zAccountPlanDetails>;
 
 export const zAccountRevenueInformation = z.object({
   annual_revenue: z.number().nullish().describe('Annual revenue'),
@@ -197,6 +200,7 @@ export type AccountUsageInformation = z.infer<typeof zAccountUsageInformation>;
 
 export const zAccount = z.object({
   ...zAccountCore.shape,
+  ...zAccountPlanDetails.shape,
   ...zAccountRevenueInformation.shape,
   ...zAccountLocationInformation.shape,
   ...zAccountContactInformation.shape,

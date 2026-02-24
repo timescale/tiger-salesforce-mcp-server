@@ -92,7 +92,6 @@ SELECT
 ${
   includePlanDetails
     ? `a.account_status_c,
-  a.annual_revenue,
   a.nps_score_c,
   a.account_tier_c,
   a.account_stage_c,
@@ -113,7 +112,8 @@ ${
 
   ${
     includeRevenue
-      ? `a.current_billable_mrr_c,
+      ? `a.annual_revenue,
+  a.current_billable_mrr_c,
   a.arr_as_of_last_month_c,
   a.lifetime_value_c,`
       : ''
