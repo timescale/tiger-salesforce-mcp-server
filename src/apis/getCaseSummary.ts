@@ -1,7 +1,7 @@
 import { ApiFactory, InferSchema } from '@tigerdata/mcp-boilerplate';
 import { z } from 'zod';
 import { CaseSummary, ServerContext, zCaseSummary } from '../types.js';
-import { addUrlToCaseSummary } from '../utils.js';
+import { addUrlToCaseSummary } from '../utils/addUrlToCaseSummary.js';
 
 const inputSchema = {
   case_id: z

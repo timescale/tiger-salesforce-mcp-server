@@ -9,6 +9,7 @@ import {
   zAccountRevenueInformation,
   zAccountUsageInformation,
 } from '../types.js';
+import { queryAccounts } from '../utils/queries.js';
 
 const inputSchema = {
   account_id: z
@@ -84,124 +85,17 @@ Always link to the account using the returned \`url\`.
     includeContacts,
     includeUsage,
   }): Promise<InferSchema<typeof outputSchema>> => {
-    const result = await pgPool.query<Account>(
-      /* sql */ `
-SELECT
-  -- Core (always returned)
-  a.id,
-  a.name,
-  a.type,
-  a.website,
-  a.industry,
-  a.account_status_c,
-  a.description,
-  a.number_of_employees::integer,
-  a.annual_revenue,
-  a.nps_score_c,
-  a.account_tier_c,
-  a.account_stage_c,
-  a.account_health_c,
-  a.customer_start_date_c,
-  a.customer_end_date_c,
-  a.churn_risk_c,
-  a.plan_type_c,
-  a.free_plan_started_c,
-  a.free_plan_conversion_date_c,
-  a.billing_category_c,
-  a.customer_use_case_c,
-  a.company_industry_tag_c,
-  a.mst_c,
-
-  ${
-    includeRevenue
-      ? `a.current_billable_mrr_c,
-  a.arr_as_of_last_month_c,
-  a.lifetime_value_c,`
-      : ''
-  }
-  ${
-    includeLocation
-      ? `a.billing_street,
-  a.billing_city,
-  a.billing_state,
-  a.billing_postal_code,
-  a.billing_country,
-  a.billing_country_code,
-  a.shipping_street,
-  a.shipping_city,
-  a.shipping_state,
-  a.shipping_postal_code,
-  a.shipping_country,`
-      : ''
-  }
-
-
-  -- Named relationships (resolved to names)
-  lse.name AS lead_support_engineer_name,
-  ps.name AS product_sponsor_name,
-  csm.name AS customer_success_manager_name,
-  ae.name as account_executive_name
-
-  ${
-    includeUsage
-      ? `, a.actively_consuming_c,
-  a.cloud_provider_c,
-  a.number_of_services_c,
-  a.size_of_services_c,
-  a.project_id_c,
-  a.service_id_c,
-  a.total_active_storage_c,
-  a.total_active_cpu_c,
-  a.weekly_page_views_c,
-  a.cloud_trial_c`
-      : ''
-  }
-
-FROM salesforce.account a
-  LEFT JOIN salesforce.user lse ON lse.id = a.lead_support_engineer_c
-  LEFT JOIN salesforce.user ps ON ps.id = a.product_sponsor_c
-  LEFT JOIN salesforce.user csm ON csm.id = a.customer_success_manager_c
-  LEFT join salesforce.user ae on ae.id = a.owner_id
-WHERE NOT COALESCE(a.is_deleted, false)
-  AND a.id = $1
-ORDER BY a.name
-`,
-      [account_id],
-    );
-
-    if (result.rows.length === 0) {
-      throw new Error(
-        `No account found${account_id ? ` for id: ${account_id}` : ''}`,
-      );
-    }
-
-    const account = result.rows[0];
-
-    if (includeContacts) {
-      const contactResult = await pgPool.query<Omit<Account, 'contacts'>>(
-        /* sql */ `
-SELECT
-  id,
-  first_name,
-  last_name,
-  title,
-  email,
-  phone,
-  support_contact_c
-FROM salesforce.contact
-WHERE account_id = $1
-  AND NOT COALESCE(is_deleted, false)
-ORDER BY last_name, first_name
-`,
-        [account.id],
-      );
-      account.contacts = contactResult.rows;
-    }
+    const account = await queryAccounts(pgPool, {
+      singleAccount: true,
+      accountId: account_id,
+      includeContacts,
+      includeLocation,
+      includeRevenue,
+      includeUsage,
+    });
 
     return {
-      account: filterNulls(account) as InferSchema<
-        typeof outputSchema
-      >['account'],
+      account,
       url: process.env.SALESFORCE_DOMAIN
         ? `https://${process.env.SALESFORCE_DOMAIN}/lightning/r/Account/${account.id}/view`
         : undefined,

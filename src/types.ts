@@ -32,6 +32,9 @@ export type CaseSummaryWithSemanticDistance = z.infer<
 >;
 
 export const zAccountContact = z.object({
+  account_id: z
+    .string()
+    .describe('The ID of the account that the contact belongs to.'),
   id: z.string().describe('Contact Salesforce ID'),
   first_name: z.string().nullish().describe('First name'),
   last_name: z.string().nullish().describe('Last name'),
