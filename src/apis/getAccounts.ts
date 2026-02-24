@@ -1,18 +1,10 @@
 import { ApiFactory, InferSchema } from '@tigerdata/mcp-boilerplate';
 import { z } from 'zod';
-import {
-  Account,
-  ServerContext,
-  zAccountContactInformation,
-  zAccountCore,
-  zAccountLocationInformation,
-  zAccountRevenueInformation,
-  zAccountUsageInformation,
-} from '../types.js';
+import { ServerContext, zAccountCore } from '../types.js';
 import { queryAccounts } from '../utils/queries.js';
 
 const inputSchema = {
-  name: z
+  nameKeyword: z
     .string()
     .min(1)
     .describe('Keyword to use to do a fuzzy search on Account name'),
@@ -44,10 +36,10 @@ Returns minimal account information (id, name, type, website, industry) — not 
     inputSchema,
     outputSchema,
   },
-  fn: async ({ name }): Promise<InferSchema<typeof outputSchema>> => {
+  fn: async ({ nameKeyword }): Promise<InferSchema<typeof outputSchema>> => {
     const accounts = await queryAccounts(pgPool, {
       singleAccount: false,
-      nameKeyword: name,
+      nameKeyword,
     });
 
     return {
