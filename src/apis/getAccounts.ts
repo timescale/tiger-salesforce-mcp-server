@@ -31,7 +31,7 @@ export const getAccountsFactory: ApiFactory<
   typeof inputSchema,
   typeof outputSchema
 > = ({ pgPool }) => ({
-  name: 'get_accountws',
+  name: 'get_accounts',
   method: 'get',
   route: '/accounts',
   config: {
