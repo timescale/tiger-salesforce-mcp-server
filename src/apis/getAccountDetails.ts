@@ -34,7 +34,7 @@ const inputSchema = {
   includeContacts: z
     .boolean()
     .describe(
-      'Include contacts, CSM, lead support engineer, and product sponsor.',
+      'Include contacts within the account organization. This requires extra querying and tokens and should only be used if trying to find a contact within the client company.',
     ),
   includeUsage: z
     .boolean()
@@ -70,12 +70,13 @@ export const getAccountDetailsFactory: ApiFactory<
     description: `
 Retrieve details for a single Salesforce account by ID.
 
-Always returns: name, type, website, industry, annual revenue, number of employees, description, Slack channel, NPS score, tier, stage, health, customer dates, churn risk, plan type, free plan dates, billing category, use case, industry tag, MST flag, and the names of the CSM, lead support engineer, product sponsor, and account executive.
+Always returns: name, type, website, industry, number of employees, description, and the names of the CSM, lead support engineer, product sponsor, and account executive.
 
 Optional groups (pass true to include):
+- includePlanDetails: account status, annual revenue, NPS score, tier, stage, health, customer dates, churn risk, plan type, free plan dates, billing category, use case, industry tag, MST flag
 - includeRevenue: MRR, ARR, LTV
 - includeLocation: billing and shipping addresses
-- includeContacts: all associated contacts
+- includeContacts: all associated contacts within the account's organization
 - includeUsage: cloud services, storage, CPU, trial status, and project/service IDs
 
 Always link to the account using the returned \`url\`.
@@ -95,6 +96,7 @@ Always link to the account using the returned \`url\`.
       singleAccount: true,
       accountId: account_id,
       includePlanDetails,
+      includeInternalContacts: true,
       includeContacts,
       includeLocation,
       includeRevenue,

@@ -6,6 +6,7 @@ interface AccountQueryOptions {
   includePlanDetails: boolean;
   includeRevenue: boolean;
   includeLocation: boolean;
+  includeInternalContacts: boolean;
   includeContacts: boolean;
   includeUsage: boolean;
 }
@@ -69,6 +70,7 @@ export async function queryAccounts(
   const {
     includeContacts,
     includePlanDetails,
+    includeInternalContacts,
     includeLocation,
     includeRevenue,
     includeUsage,
@@ -132,12 +134,15 @@ ${
       : ''
   }
 
-
-  -- Named relationships (resolved to names)
-  lse.name AS lead_support_engineer_name,
+${
+  includeInternalContacts
+    ? `lse.name AS lead_support_engineer_name,
   ps.name AS product_sponsor_name,
   csm.name AS customer_success_manager_name,
-  ae.name as account_executive_name
+  ae.name as account_executive_name`
+    : ''
+}
+  
 
   ${
     includeUsage
@@ -155,10 +160,15 @@ ${
   }
 
 FROM salesforce.account a
-  LEFT JOIN salesforce.user lse ON lse.id = a.lead_support_engineer_c
+${
+  includeInternalContacts
+    ? ` LEFT JOIN salesforce.user lse ON lse.id = a.lead_support_engineer_c
   LEFT JOIN salesforce.user ps ON ps.id = a.product_sponsor_c
   LEFT JOIN salesforce.user csm ON csm.id = a.customer_success_manager_c
-  LEFT join salesforce.user ae on ae.id = a.owner_id
+  LEFT join salesforce.user ae on ae.id = a.owner_id`
+    : ''
+}
+ 
 WHERE NOT COALESCE(a.is_deleted, false)
   ${useAccountId ? 'AND a.id = $1' : "AND a.name ILIKE '%' || $1 || '%'"}
 ORDER BY a.name
