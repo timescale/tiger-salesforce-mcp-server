@@ -55,7 +55,7 @@ const outputSchema = {
     ),
 } as const;
 
-export const searchCaseSummaries: ApiFactory<
+export const searchCaseSummariesFactory: ApiFactory<
   ServerContext,
   typeof inputSchema,
   typeof outputSchema
