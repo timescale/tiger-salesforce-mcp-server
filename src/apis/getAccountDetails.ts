@@ -63,7 +63,7 @@ export const getAccountDetailsFactory: ApiFactory<
   config: {
     title: 'Get Salesforce Account Details',
     description: `
-Retrieve details for a Salesforce account by ID or fuzzy name match.
+Retrieve details for a single Salesforce account by ID.
 
 Always returns: name, type, website, industry, annual revenue, number of employees, description, Slack channel, NPS score, tier, stage, health, customer dates, churn risk, plan type, free plan dates, billing category, use case, industry tag, MST flag, and the names of the CSM, lead support engineer, product sponsor, and account executive.
 
