@@ -20,7 +20,7 @@ function parseEmailReply(text: string | null): string | null {
 }
 
 const inputSchema = {
-  case_id: z
+  case_id_or_number: z
     .string()
     .regex(
       /^([a-zA-Z0-9]{18}|\d+)$/,
@@ -174,7 +174,9 @@ export const getCaseDetailsFactory: ApiFactory<
     inputSchema,
     outputSchema,
   },
-  fn: async ({ case_id }): Promise<InferSchema<typeof outputSchema>> => {
+  fn: async ({
+    case_id_or_number,
+  }): Promise<InferSchema<typeof outputSchema>> => {
     const result = await pgPool.query<CaseRow>(
       /* sql */ `
 SELECT
@@ -190,12 +192,12 @@ LEFT JOIN salesforce.email_message e ON e.parent_id = c.id
 WHERE c.id = $1 OR c.case_number = $1
 ORDER BY e.created_date ASC NULLS FIRST
 `,
-      [case_id],
+      [case_id_or_number],
     );
 
     if (result.rows.length === 0) {
       throw new Error(
-        `No case found for case_id: ${case_id}. Please verify the case ID and try again.`,
+        `No case found with identifier: ${case_id_or_number}. Please verify the case ID/number and try again.`,
       );
     }
 
