@@ -22,9 +22,12 @@ function parseEmailReply(text: string | null): string | null {
 const inputSchema = {
   case_id: z
     .string()
-    .min(1)
+    .regex(
+      /^([a-zA-Z0-9]{18}|\d+)$/,
+      'case_id must be either an 18-character Salesforce case ID (e.g. "0053s000004R2WwAAK") or a numeric case number (e.g. "00037312")',
+    )
     .describe(
-      'The unique identifier of the Salesforce case to retrieve details for.',
+      'The unique identifier of the Salesforce case to retrieve details for. This can either be the case id (e.g. "0053s000004R2WwAAK") or the case number (e.g. "00037312")',
     ),
 } as const;
 
