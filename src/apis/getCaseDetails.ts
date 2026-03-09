@@ -20,11 +20,14 @@ function parseEmailReply(text: string | null): string | null {
 }
 
 const inputSchema = {
-  case_id: z
+  case_id_or_number: z
     .string()
-    .min(1)
+    .regex(
+      /^([a-zA-Z0-9]{18}|\d+)$/,
+      'case_id must be either an 18-character Salesforce case ID (e.g. "0053s000004R2WwAAK") or a numeric case number (e.g. "00037312")',
+    )
     .describe(
-      'The unique identifier of the Salesforce case to retrieve details for.',
+      'The unique identifier of the Salesforce case to retrieve details for. This can either be the case id (e.g. "0053s000004R2WwAAK") or the case number (e.g. "00037312")',
     ),
 } as const;
 
@@ -171,7 +174,9 @@ export const getCaseDetailsFactory: ApiFactory<
     inputSchema,
     outputSchema,
   },
-  fn: async ({ case_id }): Promise<InferSchema<typeof outputSchema>> => {
+  fn: async ({
+    case_id_or_number,
+  }): Promise<InferSchema<typeof outputSchema>> => {
     const result = await pgPool.query<CaseRow>(
       /* sql */ `
 SELECT
@@ -187,12 +192,12 @@ LEFT JOIN salesforce.email_message e ON e.parent_id = c.id
 WHERE c.id = $1 OR c.case_number = $1
 ORDER BY e.created_date ASC NULLS FIRST
 `,
-      [case_id],
+      [case_id_or_number],
     );
 
     if (result.rows.length === 0) {
       throw new Error(
-        `No case found for case_id: ${case_id}. Please verify the case ID and try again.`,
+        `No case found with identifier: ${case_id_or_number}. Please verify the case ID/number and try again.`,
       );
     }
 
@@ -210,8 +215,10 @@ ORDER BY e.created_date ASC NULLS FIRST
       },
       {} as Partial<CaseDetails>,
     ) as CaseDetails;
-    if (process.env.SALESFORCE_DOMAIN) {
-      caseData.url = `https://${process.env.SALESFORCE_DOMAIN}/lightning/r/Case/${case_id}/view`;
+
+    const caseId = caseData.id;
+    if (process.env.SALESFORCE_DOMAIN && caseId) {
+      caseData.url = `https://${process.env.SALESFORCE_DOMAIN}/lightning/r/Case/${caseId}/view`;
     }
 
     // Extract and parse emails
