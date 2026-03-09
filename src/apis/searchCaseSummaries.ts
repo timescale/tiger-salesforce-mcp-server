@@ -9,6 +9,10 @@ import {
 } from '../types.js';
 
 const inputSchema = {
+  accountId: z
+    .string()
+    .nullable()
+    .describe('The id of the customer account to filter by'),
   limit: z.coerce
     .number()
     .min(1)
@@ -67,11 +71,13 @@ export const searchCaseSummariesFactory: ApiFactory<
     title: 'Search Salesforce Case Summaries',
     description: `
 Search Salesforce support case summaries using any combination of parameters:
-- Natural language semantic search via \`prompt\`
-- Filter by project ID or service ID
+- Filter by customer account id (will always be set on case and is the best way to find cases for a particular customer)
+- Filter by customer project id (this is optional on cases, but can be used to find cases that are specific to a project within a customer account)
+- Filter by customer service id (this is optional on cases, but can be used to find cases for a specific TimescaleDB instance within a customer account project)
 - Filter by date range using \`timestampStart\` and/or \`timestampEnd\` (based on when the case summary was last updated)
+- Natural language semantic search via \`prompt\` (note: given that this is semantic search, this should only be used to find cases related to a particular idea/theme and not used to find a particular keyword)
 
-Use this to find cases relevant to a customer issue, a specific project or service, or cases updated within a given time window.
+Note: when semantic search is not used, results are filtered in descending order (based on cases' updated_at field), but when semantic search is used, results are sorted by semantic relevancy.
 
 Always cite your sources.
 When mentioning a case in your response, format it as an inline link, as supported by the response platform.
@@ -81,9 +87,10 @@ Always use the provided \`url_template\` to create a link to the original case b
     outputSchema,
   },
   fn: async ({
-    prompt,
+    accountId,
     limit,
     projectId,
+    prompt,
     serviceId,
     timestampStart,
     timestampEnd,
@@ -115,6 +122,7 @@ WITH distances AS (
 
     -- the service id field can be a comma delimited list
     AND ($5::TEXT IS NULL OR c.cloud_service_id_c ILIKE '%'||$5::text||'%')
+    AND ($6::TEXT IS NULL or c.account_id = $6::TEXT)
 ),
 ranked AS (
   SELECT
@@ -129,7 +137,7 @@ SELECT case_id, summary, distance, updated_at
 FROM ranked
 WHERE rn = 1
 ${hasSemanticSearch ? 'ORDER BY distance' : 'ORDER BY updated_at DESC'}
-LIMIT $6
+LIMIT $7
 `,
       [
         hasSemanticSearch ? JSON.stringify(embedding) : null,
@@ -137,6 +145,7 @@ LIMIT $6
         timestampEnd?.toISOString(),
         projectId,
         serviceId,
+        accountId,
         limit || 10,
       ],
     );
