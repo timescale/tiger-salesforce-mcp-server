@@ -215,8 +215,10 @@ ORDER BY e.created_date ASC NULLS FIRST
       },
       {} as Partial<CaseDetails>,
     ) as CaseDetails;
-    if (process.env.SALESFORCE_DOMAIN) {
-      caseData.url = `https://${process.env.SALESFORCE_DOMAIN}/lightning/r/Case/${case_id}/view`;
+
+    const caseId = caseData.id;
+    if (process.env.SALESFORCE_DOMAIN && caseId) {
+      caseData.url = `https://${process.env.SALESFORCE_DOMAIN}/lightning/r/Case/${caseId}/view`;
     }
 
     // Extract and parse emails
