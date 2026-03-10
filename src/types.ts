@@ -208,3 +208,16 @@ export const zAccount = z.object({
 });
 
 export type Account = z.infer<typeof zAccount>;
+
+export const zUserDetails = z.object({
+  id: z.string().describe('The unique user identifier'),
+  username: z.string().nullish(),
+  first_name: z.string().nullish(),
+  last_name: z.string().nullish(),
+  company_name: z.string().nullish(),
+  email: z.string().nullish(),
+  title: z.string().nullish(),
+  department: z.string().nullish(),
+});
+
+export type UserDetails = z.infer<typeof zUserDetails>;
