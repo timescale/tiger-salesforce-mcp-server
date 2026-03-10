@@ -1,5 +1,5 @@
 import { Pool } from 'pg';
-import { Account, AccountContact } from '../types.js';
+import { Account, AccountContact, Churn } from '../types.js';
 import { log } from '@tigerdata/mcp-boilerplate';
 
 interface AccountQueryOptions {
@@ -9,6 +9,7 @@ interface AccountQueryOptions {
   includeInternalContacts?: boolean;
   includeContacts?: boolean;
   includeUsage?: boolean;
+  includeChurnInformation?: boolean;
 }
 
 interface AccountQueryById extends AccountQueryOptions {
@@ -20,6 +21,33 @@ interface AccountQueryByKeyword extends AccountQueryOptions {
   singleAccount: false;
   nameKeyword: string;
 }
+
+export const queryChurn = async (
+  pool: Pool,
+  accountId: string,
+): Promise<Churn[]> => {
+  const result = await pool.query<Churn>(
+    /* sql */ `
+SELECT
+  id,
+  name,
+  churn_status_c,
+  churn_impact_arr_c,
+  expected_churn_date_c,
+  churn_reason_c,
+  churn_competitor_c_c,
+  churn_mitigation_plan_c,
+  churn_discovery_notes_c
+FROM salesforce.churn_c
+WHERE account_c = $1
+  AND NOT COALESCE(_fivetran_deleted, false)
+ORDER BY created_date DESC
+`,
+    [accountId],
+  );
+
+  return result.rows;
+};
 
 export const queryContacts = async (
   pool: Pool,
@@ -69,6 +97,7 @@ export async function queryAccounts(
 ): Promise<Account | Account[]> {
   const {
     includeContacts,
+    includeChurnInformation,
     includePlanDetails,
     includeInternalContacts,
     includeLocation,
@@ -97,7 +126,6 @@ SELECT
           'a.account_health_c',
           'a.customer_start_date_c',
           'a.customer_end_date_c',
-          'a.churn_risk_c',
           'a.plan_type_c',
           'a.free_plan_started_c',
           'a.free_plan_conversion_date_c',
@@ -185,6 +213,10 @@ ORDER BY a.name
   }
 
   const { rows: accounts } = result;
+  if (includeChurnInformation && singleAccount) {
+    accounts[0].churn = await queryChurn(pool, accounts[0].id);
+  }
+
   if (includeContacts) {
     const contacts = await queryContacts(
       pool,

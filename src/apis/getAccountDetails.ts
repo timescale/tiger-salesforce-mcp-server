@@ -2,6 +2,7 @@ import { ApiFactory, InferSchema } from '@tigerdata/mcp-boilerplate';
 import { z } from 'zod';
 import {
   ServerContext,
+  zAccountChurnInformation,
   zAccountContactInformation,
   zAccountCore,
   zAccountLocationInformation,
@@ -51,6 +52,7 @@ const outputSchema = {
       ...zAccountRevenueInformation.shape,
       ...zAccountLocationInformation.shape,
       ...zAccountContactInformation.shape,
+      ...zAccountChurnInformation.shape,
       ...zAccountUsageInformation.shape,
     })
     .partial()
@@ -71,7 +73,7 @@ export const getAccountDetailsFactory: ApiFactory<
     description: `
 Retrieve details for a single Salesforce account by ID.
 
-Always returns: name, type, website, industry, number of employees, description, and the names of the CSM, lead support engineer, product sponsor, and account executive.
+Always returns: name, type, website, industry, number of employees, description, the names of the CSM, lead support engineer, product sponsor, and account executive, and all churn records for the account.
 
 Optional groups (pass true to include):
 - includePlanDetails: account status, annual revenue, NPS score, tier, stage, health, customer dates, churn risk, plan type, free plan dates, billing category, use case, industry tag, MST flag
@@ -102,6 +104,7 @@ Always link to the account using the returned \`url\`.
       includeLocation,
       includeRevenue,
       includeUsage,
+      includeChurnInformation: true,
     });
 
     return {
