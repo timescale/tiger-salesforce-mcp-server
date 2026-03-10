@@ -92,7 +92,6 @@ export const zAccountPlanDetails = z.object({
     .date()
     .nullish()
     .describe('Churned date, if applicable (custom)'),
-  churn_risk_c: z.boolean().nullish().describe('Churn risk flag (custom)'),
   plan_type_c: z.string().nullish().describe('Type of plan'),
   free_plan_started_c: z.coerce
     .date()
@@ -163,6 +162,41 @@ export type AccountContactInformation = z.infer<
   typeof zAccountContactInformation
 >;
 
+export const zChurn = z.object({
+  id: z.string().describe('Churn record ID'),
+  name: z.string().nullish().describe('Churn record name'),
+  churn_status_c: z
+    .string()
+    .nullish()
+    .describe(
+      'Churn status (e.g. Churned, Mitigation, Unengaged, Churn Avoided)',
+    ),
+  churn_impact_arr_c: z
+    .number()
+    .nullish()
+    .describe('ARR impact of the churn event'),
+  expected_churn_date_c: z.string().nullish().describe('Expected churn date'),
+  churn_reason_c: z.string().nullish().describe('Reason for churn'),
+  churn_competitor_c_c: z
+    .string()
+    .nullish()
+    .describe('Competitor that the customer churned to'),
+  churn_mitigation_plan_c: z
+    .string()
+    .nullish()
+    .describe('Mitigation plan notes'),
+  churn_discovery_notes_c: z
+    .string()
+    .nullish()
+    .describe('Discovery notes about the churn event'),
+});
+export type Churn = z.infer<typeof zChurn>;
+
+export const zAccountChurnInformation = z.object({
+  churn: z.array(zChurn).optional().describe('Churn records for this account'),
+});
+export type AccountChurnInformation = z.infer<typeof zAccountChurnInformation>;
+
 export const zAccountUsageInformation = z.object({
   actively_consuming_c: z
     .boolean()
@@ -204,6 +238,7 @@ export const zAccount = z.object({
   ...zAccountRevenueInformation.shape,
   ...zAccountLocationInformation.shape,
   ...zAccountContactInformation.shape,
+  ...zAccountChurnInformation.shape,
   ...zAccountUsageInformation.shape,
 });
 
