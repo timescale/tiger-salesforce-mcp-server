@@ -31,13 +31,18 @@ const outputSchema = {
   results: z.array(
     z.object({
       ...zChurn.shape,
-      account_c: z.string().describe('The account ID this churn record belongs to'),
+      account_c: z
+        .string()
+        .describe('The account ID this churn record belongs to'),
       account_name: z.string().nullish().describe('The name of the account'),
     }),
   ),
 } as const;
 
-type ChurnWithAccount = Churn & { account_c: string; account_name: string | null };
+type ChurnWithAccount = Churn & {
+  account_c: string;
+  account_name: string | null;
+};
 
 export const searchChurnInformationFactory: ApiFactory<
   ServerContext,
