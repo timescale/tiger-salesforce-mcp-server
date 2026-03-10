@@ -33,7 +33,7 @@ SELECT
   name,
   churn_status_c,
   churn_impact_arr_c,
-  expected_churn_date_c,
+  expected_churn_date_c::text,
   churn_reason_c,
   churn_competitor_c_c,
   churn_mitigation_plan_c,
