@@ -83,11 +83,15 @@ LIMIT 0
     let caseRow: CaseRow | null = null;
     let emails: Email[] | null = null;
 
+    // if the case exists in our db, use the results
     if (result.rows.length) {
       caseRow = result.rows[0];
       emails = await queryEmails(pgPool, caseRow.id);
-    } else if (salesforceClientFactory) {
-      log.warn('Case not found in db, using Salesforce API', {
+    }
+    // otherwise, if we have salesforce credentials, let's fetch directly
+    // from Salesforce
+    else if (salesforceClientFactory) {
+      log.info('Case not found in db, using Salesforce API', {
         caseIdOrNumber: case_id_or_number,
       });
 
