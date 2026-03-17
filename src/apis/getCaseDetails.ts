@@ -54,7 +54,7 @@ export const getCaseDetailsFactory: ApiFactory<
   ServerContext,
   typeof inputSchema,
   typeof outputSchema
-> = ({ pgPool }) => ({
+> = ({ pgPool, salesforceClientFactory }) => ({
   name: 'get_case_details',
   method: 'get',
   route: '/case-details',
@@ -83,7 +83,10 @@ LIMIT 0
     let caseRow: CaseRow | null = null;
     let emails: Email[] | null = null;
 
-    if (result.rows.length === 0) {
+    if (result.rows.length) {
+      caseRow = result.rows[0];
+      emails = await queryEmails(pgPool, caseRow.id);
+    } else if (salesforceClientFactory) {
       log.warn('Case not found in db, using Salesforce API', {
         caseIdOrNumber: case_id_or_number,
       });
@@ -96,10 +99,9 @@ LIMIT 0
         );
       }
 
-      emails = await getCaseEmails(caseRow.id);
+      emails = await getCaseEmails(salesforceClientFactory, caseRow.id);
     } else {
-      caseRow = result.rows[0];
-      emails = await queryEmails(pgPool, caseRow.id);
+      throw new Error('Could not find case in database.');
     }
 
     const caseData: CaseDetailsWithUrl = caseDetailsFields.reduce(

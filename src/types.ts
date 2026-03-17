@@ -1,8 +1,10 @@
+import { Connection } from 'jsforce';
 import type { Pool } from 'pg';
 import { z } from 'zod';
 
 export interface ServerContext extends Record<string, unknown> {
   pgPool: Pool;
+  salesforceClientFactory: (() => Promise<Connection>) | null;
 }
 
 export const zCaseSummary = z.object({

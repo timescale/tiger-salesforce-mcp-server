@@ -1,4 +1,4 @@
-import { Connection, Record as SalesforceRecord } from 'jsforce';
+import { Connection } from 'jsforce';
 
 import { log } from '@tigerdata/mcp-boilerplate';
 import { caseDetailsFields, CaseRow, Email, emailFields } from '../types.js';
@@ -6,15 +6,9 @@ import { caseDetailsFields, CaseRow, Email, emailFields } from '../types.js';
 const { SALESFORCE_CLIENT_ID, SALESFORCE_CLIENT_SECRET, SALESFORCE_DOMAIN } =
   process.env;
 
-if (!SALESFORCE_CLIENT_ID || !SALESFORCE_CLIENT_SECRET || !SALESFORCE_DOMAIN) {
-  throw new Error(
-    'Salesforce client ID, secret, and domain must be set in environment variables.',
-  );
-}
-
 const salesforceUrl = `https://${SALESFORCE_DOMAIN}`;
 
-const getSalesforce = async (): Promise<Connection> => {
+export const getSalesforce = async (): Promise<Connection> => {
   const client = new Connection({
     instanceUrl: salesforceUrl,
     oauth2: {
@@ -98,14 +92,16 @@ LIMIT 1`);
 };
 
 export const getCaseEmails = async (
+  salesforceClient: () => Promise<Connection>,
   caseId: string,
 ): Promise<Email[] | null> => {
   try {
-    const client = await getSalesforce();
+    const client = await salesforceClient();
     const fields = getSalesforceFields(emailFields);
-    const result = await client.query(`SELECT ${fields.join(',')} 
+    const result = await client.query(`SELECT ${fields.join(',')}
         FROM EmailMessage
-        WHERE ParentId = '${caseId}'`);
+        WHERE ParentId = '${caseId}'
+        ORDER BY CreatedDate DESC`);
 
     if (result.records.length === 0) {
       log.info('Could not find case emails via Salesforce API', { caseId });
