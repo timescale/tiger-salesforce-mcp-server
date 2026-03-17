@@ -1,7 +1,7 @@
 import { Connection, Record as SalesforceRecord } from 'jsforce';
 
 import { log } from '@tigerdata/mcp-boilerplate';
-import { caseDetailsFields, CaseRow } from '../types.js';
+import { caseDetailsFields, CaseRow, Email, emailFields } from '../types.js';
 
 const { SALESFORCE_CLIENT_ID, SALESFORCE_CLIENT_SECRET, SALESFORCE_DOMAIN } =
   process.env;
@@ -14,30 +14,18 @@ if (!SALESFORCE_CLIENT_ID || !SALESFORCE_CLIENT_SECRET || !SALESFORCE_DOMAIN) {
 
 const salesforceUrl = `https://${SALESFORCE_DOMAIN}`;
 
-const salesforce = new Connection({
-  instanceUrl: salesforceUrl,
-  oauth2: {
-    loginUrl: salesforceUrl,
-    clientId: SALESFORCE_CLIENT_ID,
-    clientSecret: SALESFORCE_CLIENT_SECRET,
-  },
-  version: '64.0',
-});
-
-let initialized = false;
-
-export const getSalesforce = async (): Promise<Connection> => {
-  if (initialized) {
-    return salesforce;
-  }
-  log.info('🔐 Authenticating with Salesforce...');
-  await salesforce.authorize({
-    grant_type: 'client_credentials',
+const getSalesforce = async (): Promise<Connection> => {
+  const client = new Connection({
+    instanceUrl: salesforceUrl,
+    oauth2: {
+      loginUrl: salesforceUrl,
+      clientId: SALESFORCE_CLIENT_ID,
+      clientSecret: SALESFORCE_CLIENT_SECRET,
+    },
+    version: '64.0',
   });
-
-  log.info('✅ Successfully authenticated with Salesforce');
-  initialized = true;
-  return salesforce;
+  await client.authorize({ grant_type: 'client_credentials' });
+  return client;
 };
 
 // this converts the fields that the db schema uses into the
@@ -45,20 +33,24 @@ export const getSalesforce = async (): Promise<Connection> => {
 // for instance a_custom_field_c should be a_custom_field__c (extra underscore)
 // and non_custom_field should be noncustomfield
 // will also use the original field name as alias
-const getSalesforceFields = (): string[] => {
-  return caseDetailsFields.map((field) => {
+const getSalesforceFields = (originalFields: string[]): string[] => {
+  return originalFields.map((field) => {
     const normalizedField = field.match(/[^_](_c)$/)
       ? field.replace(/(_c)$/, '__c')
-      : field.replace('_', '');
+      : field.replaceAll('_', '');
 
     return normalizedField;
   });
 };
 
-const convertSOQLCase = (caseRecord: SalesforceRecord): CaseRow => {
+// this converts SOQL fields into the expected fields
+// for instance Custom_Field__C becomes custom_field_c
+// and StandardField becomes standard_field
+const convertSOQLObject = <T>(caseRecord: Record<string, unknown>): T => {
   const keys = Object.keys(caseRecord);
-  const caseRow: Record<string, string> = {};
+  const row: Record<string, unknown> = {};
   for (const key of keys) {
+    if (key === 'attributes') continue;
     const caseRowField = (
       key.match(/__c$/)
         ? key.replace(/(__c)$/, '_c')
@@ -68,19 +60,19 @@ const convertSOQLCase = (caseRecord: SalesforceRecord): CaseRow => {
             )
             .join('')
     ).toLowerCase();
-    caseRow[caseRowField] = caseRecord[key];
+    row[caseRowField] = caseRecord[key];
   }
 
-  return caseRow as never as CaseRow;
+  return row as never as T;
 };
 
 export const getCaseDetails = async (
   caseIdOrNumber: string,
 ): Promise<CaseRow | null> => {
-  const isNumber = !!caseIdOrNumber.match(/^\d*$/);
+  const isNumber = !!caseIdOrNumber.match(/^\d+$/);
   try {
     const client = await getSalesforce();
-    const fields = getSalesforceFields();
+    const fields = getSalesforceFields(caseDetailsFields);
     const result = await client.query(`SELECT ${fields.join(',')} 
 FROM Case 
     WHERE ${isNumber ? `CaseNumber = '${caseIdOrNumber}'` : `ID = '${caseIdOrNumber}'`}
@@ -91,13 +83,42 @@ LIMIT 1`);
       return null;
     }
 
-    return convertSOQLCase(result.records[0]);
+    return convertSOQLObject(result.records[0]);
   } catch (e) {
     log.error(
       'Failed to query the Salesforce API for case details',
       e as Error,
       {
         caseIdOrNumber,
+      },
+    );
+
+    return null;
+  }
+};
+
+export const getCaseEmails = async (
+  caseId: string,
+): Promise<Email[] | null> => {
+  try {
+    const client = await getSalesforce();
+    const fields = getSalesforceFields(emailFields);
+    const result = await client.query(`SELECT ${fields.join(',')} 
+        FROM EmailMessage
+        WHERE ParentId = '${caseId}'`);
+
+    if (result.records.length === 0) {
+      log.info('Could not find case emails via Salesforce API', { caseId });
+      return null;
+    }
+
+    return result.records.map((email) => convertSOQLObject(email));
+  } catch (e) {
+    log.error(
+      'Failed to query the Salesforce API for case emails',
+      e as Error,
+      {
+        caseId,
       },
     );
 

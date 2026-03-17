@@ -1,5 +1,11 @@
 import { Pool } from 'pg';
-import { Account, AccountContact, Churn } from '../types.js';
+import {
+  Account,
+  AccountContact,
+  Churn,
+  Email,
+  emailFields,
+} from '../types.js';
 import { log } from '@tigerdata/mcp-boilerplate';
 
 interface AccountQueryOptions {
@@ -81,6 +87,25 @@ ORDER BY last_name, first_name
     },
     {},
   );
+};
+
+export const queryEmails = async (
+  pool: Pool,
+  caseId: string,
+): Promise<Email[]> => {
+  const emailResults = await pool.query<Email>(
+    /* sql */ `
+SELECT
+  ${emailFields.join(',')}
+FROM salesforce.email_message
+WHERE parent_id = $1
+  AND NOT COALESCE(is_deleted, false)
+ORDER BY created_date desc
+`,
+    [caseId],
+  );
+
+  return emailResults.rows;
 };
 
 export async function queryAccounts(

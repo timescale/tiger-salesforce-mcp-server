@@ -365,3 +365,16 @@ export const zCaseDetailsWithUrl = zCaseDetails.extend({
   url: z.string().optional().describe('The URL to view the case in Salesforce'),
 });
 export type CaseDetailsWithUrl = z.infer<typeof zCaseDetailsWithUrl>;
+
+export const zEmail = z.object({
+  from_address: z.string().nullish().describe('The sender email address'),
+  created_date: z.coerce.date().nullish().describe('When the email was sent'),
+  text_body: z
+    .string()
+    .nullish()
+    .describe('The email body (with reply parsing applied)'),
+});
+
+export type Email = z.infer<typeof zEmail>;
+
+export const emailFields = zEmail.keyof().options;

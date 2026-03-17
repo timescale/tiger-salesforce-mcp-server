@@ -5,10 +5,13 @@ import {
   caseDetailsFields,
   CaseDetailsWithUrl,
   CaseRow,
+  Email,
   ServerContext,
   zCaseDetailsWithUrl,
+  zEmail,
 } from '../types.js';
-import { getCaseDetails } from '../utils/salesforce.js';
+import { getCaseDetails, getCaseEmails } from '../utils/salesforce.js';
+import { queryEmails } from '../utils/queries.js';
 
 // Pattern used to separate original message in Salesforce emails
 const originalMessagePattern = /[-_]{10,}\s*Original Message\s*[-_]{10,}/i;
@@ -39,20 +42,11 @@ const inputSchema = {
     ),
 } as const;
 
-// Define the email schema
-const zEmail = z.object({
-  from_address: z.string().nullish().describe('The sender email address'),
-  created_date: z.string().nullish().describe('When the email was sent'),
-  body: z
-    .string()
-    .nullish()
-    .describe('The email body (with reply parsing applied)'),
-});
-
 const outputSchema = {
   case: zCaseDetailsWithUrl,
   emails: z
     .array(zEmail)
+    .nullish()
     .describe('Array of email messages in chronological order'),
 } as const;
 
@@ -78,42 +72,39 @@ export const getCaseDetailsFactory: ApiFactory<
       /* sql */ `
 SELECT
   -- Case fields
-  ${caseDetailsFields.map((field) => `c.${field}`).join('\n  , ')}
-  -- Email fields
-  , e.id as email_id
-  , e.from_address as email_from_address
-  , e.created_date as email_created_date
-  , e.text_body as email_text_body
-FROM salesforce.case c
-LEFT JOIN salesforce.email_message e ON e.parent_id = c.id
-WHERE c.id = $1 OR c.case_number = $1
-ORDER BY e.created_date ASC NULLS FIRST
+  ${caseDetailsFields.join('\n  , ')}
+FROM salesforce.case
+WHERE id = $1 OR case_number = $1
+LIMIT 0
 `,
       [case_id_or_number],
     );
 
-    let row: CaseRow | null = null;
+    let caseRow: CaseRow | null = null;
+    let emails: Email[] | null = null;
+
     if (result.rows.length === 0) {
       log.warn('Case not found in db, using Salesforce API', {
         caseIdOrNumber: case_id_or_number,
       });
 
-      row = await getCaseDetails(case_id_or_number);
+      caseRow = await getCaseDetails(case_id_or_number);
 
-      if (!row) {
+      if (!caseRow) {
         throw new Error(
           `No case found with identifier: ${case_id_or_number}. Please verify the case ID/number and try again.`,
         );
       }
-    } else {
-      row = result.rows[0];
-    }
 
-    // Extract case data from the first row (all rows have the same case data)
+      emails = await getCaseEmails(caseRow.id);
+    } else {
+      caseRow = result.rows[0];
+      emails = await queryEmails(pgPool, caseRow.id);
+    }
 
     const caseData: CaseDetailsWithUrl = caseDetailsFields.reduce(
       (acc, key) => {
-        const value = row[key as keyof CaseRow];
+        const value = caseRow[key as keyof CaseRow];
         const converted =
           value instanceof Date ? value.toISOString() : (value ?? null);
 
@@ -129,23 +120,15 @@ ORDER BY e.created_date ASC NULLS FIRST
       caseData.url = `https://${process.env.SALESFORCE_DOMAIN}/lightning/r/Case/${caseId}/view`;
     }
 
-    // Extract and parse emails
-    const emails = result.rows
-      .filter((row) => row.email_id !== null) // Filter out rows with no email
-      .map((row) => {
-        const body = parseEmailReply(row.email_text_body);
+    emails?.forEach((email) => {
+      const text = email.text_body ? parseEmailReply(email.text_body) : null;
 
-        return {
-          from_address: row.email_from_address,
-          created_date: row.email_created_date?.toISOString() ?? null,
-          body,
-        };
-      });
+      if (text === caseData.description?.trim()) {
+        caseData.description = null;
+      }
 
-    // Avoid duplicating the original message
-    if (emails[0]?.body === caseData.description?.trim()) {
-      caseData.description = null;
-    }
+      email.text_body = text;
+    });
 
     return {
       case: filterNulls(caseData),
