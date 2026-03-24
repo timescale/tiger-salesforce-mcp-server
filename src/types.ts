@@ -291,12 +291,6 @@ export type CaseRow = {
   internal_status_c: string | null;
   csat_response_c: string | null;
   csatdetail_c: string | null;
-
-  // Email fields (will be null if no emails)
-  email_id: string | null;
-  email_from_address: string | null;
-  email_created_date: Date | null;
-  email_text_body: string | null;
 };
 
 // Define the case fields schema

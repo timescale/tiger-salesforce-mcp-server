@@ -61,11 +61,11 @@ const convertSOQLObject = <T>(caseRecord: Record<string, unknown>): T => {
 };
 
 export const getCaseDetails = async (
+  client: Connection,
   caseIdOrNumber: string,
 ): Promise<CaseRow | null> => {
   const isNumber = !!caseIdOrNumber.match(/^\d+$/);
   try {
-    const client = await getSalesforce();
     const fields = getSalesforceFields(caseDetailsFields);
     const result = await client.query(`SELECT ${fields.join(',')} 
 FROM Case 
@@ -92,11 +92,10 @@ LIMIT 1`);
 };
 
 export const getCaseEmails = async (
-  salesforceClient: () => Promise<Connection>,
+  client: Connection,
   caseId: string,
 ): Promise<Email[] | null> => {
   try {
-    const client = await salesforceClient();
     const fields = getSalesforceFields(emailFields);
     const result = await client.query(`SELECT ${fields.join(',')}
         FROM EmailMessage

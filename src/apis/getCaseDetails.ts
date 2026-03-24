@@ -91,11 +91,12 @@ LIMIT 0
     // otherwise, if we have salesforce credentials, let's fetch directly
     // from Salesforce
     else if (salesforceClientFactory) {
+      const client = await salesforceClientFactory();
       log.info('Case not found in db, using Salesforce API', {
         caseIdOrNumber: case_id_or_number,
       });
 
-      caseRow = await getCaseDetails(case_id_or_number);
+      caseRow = await getCaseDetails(client, case_id_or_number);
 
       if (!caseRow) {
         throw new Error(
@@ -103,7 +104,7 @@ LIMIT 0
         );
       }
 
-      emails = await getCaseEmails(salesforceClientFactory, caseRow.id);
+      emails = await getCaseEmails(client, caseRow.id);
     } else {
       throw new Error('Could not find case in database.');
     }
