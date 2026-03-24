@@ -49,6 +49,7 @@ export const zAccountContact = z.object({
     .describe('Is a designated support contact'),
 });
 export type AccountContact = z.infer<typeof zAccountContact>;
+export const accountContactFields = zAccountContact.keyof().options;
 
 export const zAccountCore = z.object({
   id: z.string().describe('Account Salesforce ID'),
@@ -58,6 +59,12 @@ export const zAccountCore = z.object({
   industry: z.string().nullish().describe('Industry classification'),
   description: z.string().nullish().describe('Account description'),
   number_of_employees: z.number().nullish().describe('Employee count'),
+});
+
+export const accountCoreFields = zAccountCore.keyof().options;
+export type AccountCore = z.infer<typeof zAccountCore>;
+
+export const zAccountInternalContact = z.object({
   lead_support_engineer_name: z
     .string()
     .nullish()
@@ -72,7 +79,6 @@ export const zAccountCore = z.object({
     .nullish()
     .describe('Customer success manager (CSM)'),
 });
-export type AccountCore = z.infer<typeof zAccountCore>;
 
 export const zAccountPlanDetails = z.object({
   account_status_c: z.string().nullish().describe('The status of the account'),
@@ -88,19 +94,23 @@ export const zAccountPlanDetails = z.object({
     .describe('Account health score (custom)'),
   customer_start_date_c: z.coerce
     .date()
+    .transform((d) => d.toISOString())
     .nullish()
     .describe('Customer since (custom)'),
   customer_end_date_c: z.coerce
     .date()
+    .transform((d) => d.toISOString())
     .nullish()
     .describe('Churned date, if applicable (custom)'),
   plan_type_c: z.string().nullish().describe('Type of plan'),
   free_plan_started_c: z.coerce
     .date()
+    .transform((d) => d.toISOString())
     .nullish()
     .describe('When the free plan started'),
   free_plan_conversion_date_c: z.coerce
     .date()
+    .transform((d) => d.toISOString())
     .nullish()
     .describe('When the free plan converted to a paid plan'),
   billing_category_c: z
@@ -119,14 +129,22 @@ export const zAccountPlanDetails = z.object({
       'Whether or not if the customer is MST. If true, customer is on a managed service, if false, customer is on a Cloud service.',
     ),
 });
+export const accountPlanDetailsFields = zAccountPlanDetails.keyof().options;
 export type AccountPlanDetails = z.infer<typeof zAccountPlanDetails>;
 
 export const zAccountRevenueInformation = z.object({
-  annual_revenue: z.number().nullish().describe('Annual revenue'),
-  current_billable_mrr_c: z.string().nullish().describe('Current MRR'),
-  arr_as_of_last_month_c: z.string().nullish().describe('ARR as of last month'),
-  lifetime_value_c: z.string().nullish().describe('Customer lifetime value'),
+  annual_revenue: z.coerce.number().nullish().describe('Annual revenue'),
+  current_billable_mrr_c: z.coerce.number().nullish().describe('Current MRR'),
+  arr_as_of_last_month_c: z.coerce
+    .number()
+    .nullish()
+    .describe('ARR as of last month'),
+  lifetime_value_c: z.coerce
+    .number()
+    .nullish()
+    .describe('Customer lifetime value'),
 });
+export const accountRevenueFields = zAccountRevenueInformation.keyof().options;
 export type AccountRevenueInformation = z.infer<
   typeof zAccountRevenueInformation
 >;
@@ -153,6 +171,8 @@ export const zAccountLocationInformation = z.object({
     .describe('Shipping postal / ZIP code'),
   shipping_country: z.string().nullish().describe('Shipping country'),
 });
+export const accountLocationFields =
+  zAccountLocationInformation.keyof().options;
 export type AccountLocationInformation = z.infer<
   typeof zAccountLocationInformation
 >;
@@ -160,6 +180,7 @@ export type AccountLocationInformation = z.infer<
 export const zAccountContactInformation = z.object({
   contacts: z.array(zAccountContact).optional().describe('Associated contacts'),
 });
+
 export type AccountContactInformation = z.infer<
   typeof zAccountContactInformation
 >;
@@ -192,6 +213,9 @@ export const zChurn = z.object({
     .nullish()
     .describe('Discovery notes about the churn event'),
 });
+
+export const churnFields = zChurn.keyof().options;
+
 export type Churn = z.infer<typeof zChurn>;
 
 export const zAccountChurnInformation = z.object({
@@ -232,10 +256,12 @@ export const zAccountUsageInformation = z.object({
     .nullish()
     .describe('Is / was a trial account (custom)'),
 });
+export const accountUsageFields = zAccountUsageInformation.keyof().options;
 export type AccountUsageInformation = z.infer<typeof zAccountUsageInformation>;
 
 export const zAccount = z.object({
   ...zAccountCore.shape,
+  ...zAccountInternalContact.shape,
   ...zAccountPlanDetails.shape,
   ...zAccountRevenueInformation.shape,
   ...zAccountLocationInformation.shape,
@@ -291,12 +317,6 @@ export type CaseRow = {
   internal_status_c: string | null;
   csat_response_c: string | null;
   csatdetail_c: string | null;
-
-  // Email fields (will be null if no emails)
-  email_id: string | null;
-  email_from_address: string | null;
-  email_created_date: Date | null;
-  email_text_body: string | null;
 };
 
 // Define the case fields schema
@@ -380,3 +400,23 @@ export const zEmail = z.object({
 export type Email = z.infer<typeof zEmail>;
 
 export const emailFields = zEmail.keyof().options;
+
+export interface AccountQueryOptions {
+  includePlanDetails?: boolean;
+  includeRevenue?: boolean;
+  includeLocation?: boolean;
+  includeInternalContacts?: boolean;
+  includeContacts?: boolean;
+  includeUsage?: boolean;
+  includeChurnInformation?: boolean;
+}
+
+export interface AccountQueryById extends AccountQueryOptions {
+  singleAccount: true;
+  accountId: string;
+}
+
+export interface AccountQueryByKeyword extends AccountQueryOptions {
+  singleAccount: false;
+  nameKeyword: string;
+}

@@ -2,31 +2,13 @@ import { Pool } from 'pg';
 import {
   Account,
   AccountContact,
+  AccountQueryById,
+  AccountQueryByKeyword,
   Churn,
   Email,
   emailFields,
 } from '../types.js';
 import { log } from '@tigerdata/mcp-boilerplate';
-
-interface AccountQueryOptions {
-  includePlanDetails?: boolean;
-  includeRevenue?: boolean;
-  includeLocation?: boolean;
-  includeInternalContacts?: boolean;
-  includeContacts?: boolean;
-  includeUsage?: boolean;
-  includeChurnInformation?: boolean;
-}
-
-interface AccountQueryById extends AccountQueryOptions {
-  singleAccount: true;
-  accountId: string;
-}
-
-interface AccountQueryByKeyword extends AccountQueryOptions {
-  singleAccount: false;
-  nameKeyword: string;
-}
 
 export const queryChurn = async (
   pool: Pool,
@@ -111,7 +93,7 @@ ORDER BY created_date desc
 export async function queryAccounts(
   pool: Pool,
   params: AccountQueryById,
-): Promise<Account>;
+): Promise<Account | null>;
 export async function queryAccounts(
   pool: Pool,
   params: AccountQueryByKeyword,
@@ -119,7 +101,7 @@ export async function queryAccounts(
 export async function queryAccounts(
   pool: Pool,
   params: AccountQueryById | AccountQueryByKeyword,
-): Promise<Account | Account[]> {
+): Promise<Account | Account[] | null> {
   const {
     includeContacts,
     includeChurnInformation,
@@ -223,18 +205,13 @@ ORDER BY a.name
     [singleAccount ? params.accountId : params.nameKeyword],
   );
 
-  if (!result.rowCount) {
-    throw new Error(
-      `Could not find a matching account with ${singleAccount ? 'id' : 'name matching'} ${singleAccount ? params.accountId : params.nameKeyword}`,
-    );
-  }
-
   if (singleAccount) {
-    if (result.rowCount > 1) {
+    if (result?.rowCount && result.rowCount > 1) {
       throw new Error(
         `Found multiple accounts matching id ${params.accountId}`,
       );
     }
+    return null;
   }
 
   const { rows: accounts } = result;
