@@ -1,16 +1,21 @@
 import { ApiFactory, InferSchema } from '@tigerdata/mcp-boilerplate';
 import { z } from 'zod';
 import {
+  Account,
+  AccountQueryById,
   ServerContext,
+  zAccount,
   zAccountChurnInformation,
   zAccountContactInformation,
   zAccountCore,
+  zAccountInternalContact,
   zAccountLocationInformation,
   zAccountPlanDetails,
   zAccountRevenueInformation,
   zAccountUsageInformation,
 } from '../types.js';
 import { queryAccounts } from '../utils/queries.js';
+import { getAccountDetails } from '../utils/salesforce.js';
 
 const inputSchema = {
   account_id: z
@@ -48,6 +53,7 @@ const outputSchema = {
   account: z
     .object({
       ...zAccountCore.shape,
+      ...zAccountInternalContact.shape,
       ...zAccountPlanDetails.shape,
       ...zAccountRevenueInformation.shape,
       ...zAccountLocationInformation.shape,
@@ -64,7 +70,7 @@ export const getAccountDetailsFactory: ApiFactory<
   ServerContext,
   typeof inputSchema,
   typeof outputSchema
-> = ({ pgPool }) => ({
+> = ({ pgPool, salesforceClientFactory }) => ({
   name: 'get_account_details',
   method: 'get',
   route: '/account-details',
@@ -95,7 +101,21 @@ Always link to the account using the returned \`url\`.
     includeContacts,
     includeUsage,
   }): Promise<InferSchema<typeof outputSchema>> => {
-    const account = await queryAccounts(pgPool, {
+    let account: Account | null = null;
+
+    const queryParams: AccountQueryById = {
+      singleAccount: true,
+      accountId: account_id,
+      includePlanDetails,
+      includeInternalContacts: true,
+      includeContacts,
+      includeLocation,
+      includeRevenue,
+      includeUsage,
+      includeChurnInformation: true,
+    };
+
+    account = await queryAccounts(pgPool, {
       singleAccount: true,
       accountId: account_id,
       includePlanDetails,
@@ -107,11 +127,35 @@ Always link to the account using the returned \`url\`.
       includeChurnInformation: true,
     });
 
-    return {
-      account,
-      url: process.env.SALESFORCE_DOMAIN
-        ? `https://${process.env.SALESFORCE_DOMAIN}/lightning/r/Account/${account.id}/view`
-        : undefined,
-    };
+    if (!account) {
+      if (!salesforceClientFactory) {
+        throw new Error(
+          `Could not find account with id ${account_id} in database.`,
+        );
+      }
+
+      const client = await salesforceClientFactory();
+      const sfAccount = await getAccountDetails(client, queryParams);
+
+      if (!sfAccount) {
+        throw new Error(
+          `No account found with id: ${account_id}. Please verify the account ID and try again.`,
+        );
+      }
+
+      if (!sfAccount.id) {
+        throw new Error(
+          `Account found but missing id field for: ${account_id}`,
+        );
+      }
+
+      account = zAccount.partial().required({ id: true }).parse(sfAccount);
+    }
+
+    const url = process.env.SALESFORCE_DOMAIN
+      ? `https://${process.env.SALESFORCE_DOMAIN}/lightning/r/Account/${account.id}/view`
+      : undefined;
+
+    return { account, url };
   },
 });

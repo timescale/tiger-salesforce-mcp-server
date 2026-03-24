@@ -1,7 +1,24 @@
 import { Connection } from 'jsforce';
 
 import { log } from '@tigerdata/mcp-boilerplate';
-import { caseDetailsFields, CaseRow, Email, emailFields } from '../types.js';
+import {
+  Account,
+  AccountContact,
+  accountContactFields,
+  accountCoreFields,
+  accountLocationFields,
+  accountPlanDetailsFields,
+  AccountQueryById,
+  accountRevenueFields,
+  accountUsageFields,
+  caseDetailsFields,
+  CaseRow,
+  Churn,
+  churnFields,
+  Email,
+  emailFields,
+  zAccount,
+} from '../types.js';
 
 const { SALESFORCE_CLIENT_ID, SALESFORCE_CLIENT_SECRET, SALESFORCE_DOMAIN } =
   process.env;
@@ -88,6 +105,87 @@ LIMIT 1`);
     );
 
     return null;
+  }
+};
+
+export const getAccountDetails = async (
+  client: Connection,
+  params: AccountQueryById,
+): Promise<Partial<Account> | null> => {
+  const {
+    accountId,
+    includeContacts,
+    includeChurnInformation,
+    includePlanDetails,
+    includeInternalContacts,
+    includeLocation,
+    includeRevenue,
+    includeUsage,
+  } = params;
+  try {
+    const fields = [
+      ...accountCoreFields,
+      ...(includePlanDetails ? accountPlanDetailsFields : []),
+      ...(includeLocation ? accountLocationFields : []),
+      ...(includeRevenue ? accountRevenueFields : []),
+      ...(includeUsage ? accountUsageFields : []),
+    ];
+    const result = await client.query(
+      `SELECT ${[
+        ...getSalesforceFields(fields),
+        ...(includeInternalContacts
+          ? [
+              'Lead_Support_Engineer__r.Name',
+              'Product_Sponsor__r.Name',
+              'Customer_Success_Manager__r.Name',
+              'Owner.Name',
+            ]
+          : []),
+      ].join(',')} FROM Account WHERE Id = '${accountId}' LIMIT 1`,
+    );
+
+    if (result.records.length === 0) {
+      log.info('Could not find account via Salesforce API', { accountId });
+      return null;
+    }
+    const raw = result.records[0];
+    const account = zAccount.partial().parse({
+      ...convertSOQLObject<Account>(raw as Record<string, unknown>),
+      ...(includeInternalContacts
+        ? {
+            lead_support_engineer_name: raw.Lead_Support_Engineer__r?.Name,
+            product_sponsor_name: raw.Product_Sponser__r?.Name,
+            customer_success_manager_name:
+              raw.Customer_Success_Manager__r?.Name,
+            account_executive_name: raw.Owner?.Name,
+          }
+        : {}),
+    });
+
+    if (includeChurnInformation) {
+      const churnResult = await client.query(
+        `SELECT ${getSalesforceFields(churnFields).join(',')} FROM Churn__c WHERE Account__c = '${accountId}'`,
+      );
+
+      account.churn = churnResult.records.map((x) =>
+        convertSOQLObject<Churn>(x),
+      );
+    }
+
+    if (includeContacts) {
+      const contactResult = await client.query(
+        `SELECT ${getSalesforceFields(accountContactFields).join(',')} FROM Contact WHERE AccountId = '${accountId}'`,
+      );
+      account.contacts = contactResult.records.map((x) =>
+        convertSOQLObject<AccountContact>(x),
+      );
+    }
+
+    return account;
+  } catch (e) {
+    throw new Error('Failed to query the Salesforce API for account details', {
+      cause: e,
+    });
   }
 };
 
