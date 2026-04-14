@@ -301,6 +301,7 @@ export type CaseRow = {
   cloud_region_c: string | null;
   cloud_project_id_c: string | null;
   cloud_service_id_c: string | null;
+  customer_slack_thread_c: string | null;
   cloud_impact_c: string | null;
   cloud_is_production_c: boolean | null;
   product_area_c: string | null;
@@ -338,6 +339,10 @@ const zCaseDetails = z.object({
     .describe('The account ID associated with the case'),
   created_date: z.string().nullish().describe('When the case was created'),
   closed_date: z.string().nullish().describe('When the case was closed'),
+  customer_slack_thread_c: z
+    .string()
+    .nullish()
+    .describe('The permalink to the customer facing Slack thread for case.'),
 
   // Cloud-related fields
   cloud_region_c: z.string().nullish().describe('Cloud region'),
