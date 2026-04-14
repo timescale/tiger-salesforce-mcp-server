@@ -304,6 +304,7 @@ export type CaseRow = {
   customer_slack_thread_c: string | null;
   cloud_impact_c: string | null;
   cloud_is_production_c: boolean | null;
+  eon_slack_thread_c: string | null;
   product_area_c: string | null;
   platform_name_c: string | null;
   impact_c: string | null;
@@ -343,6 +344,10 @@ const zCaseDetails = z.object({
     .string()
     .nullish()
     .describe('The permalink to the customer facing Slack thread for case.'),
+  eon_slack_thread_c: z
+    .string()
+    .nullish()
+    .describe('The permalink to the internal eon-initiated case thread.'),
 
   // Cloud-related fields
   cloud_region_c: z.string().nullish().describe('Cloud region'),
