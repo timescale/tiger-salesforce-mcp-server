@@ -75,7 +75,7 @@ SELECT
   ${caseDetailsFields.join('\n  , ')}
 FROM salesforce.case
 WHERE id = $1 OR case_number = $1
-LIMIT 0
+LIMIT 1
 `,
       [case_id_or_number],
     );
