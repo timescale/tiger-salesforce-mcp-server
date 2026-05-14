@@ -108,7 +108,10 @@ export const zAccountPlanDetails = z.object({
     .transform((d) => d.toISOString())
     .nullish()
     .describe('When the free plan started'),
-  trial_start_date_c: z.coerce.date().transform((d) => d.toISOString()).nullish(),
+  trial_start_date_c: z.coerce
+    .date()
+    .transform((d) => d.toISOString())
+    .nullish(),
   free_plan_conversion_date_c: z.coerce
     .date()
     .transform((d) => d.toISOString())

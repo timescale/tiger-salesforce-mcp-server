@@ -113,7 +113,6 @@ export async function queryAccounts(
     singleAccount,
   } = params;
 
-
   const result = await pool.query<Account>(
     /* sql */ `
 SELECT
@@ -201,25 +200,26 @@ ${
 }
  
 WHERE NOT COALESCE(a.is_deleted, false) AND
-  ${singleAccount ? 'a.id = $1' : (({ dateType }): string => {
-    const col = dateType === 'mstCustomerStart'
-      ? 'a.mst_customer_start_date_c'
-      : dateType === 'trialStart'
-      ? 'a.trial_start_date_c'
-      : 'a.customer_start_date_c';
-    return `((a.name ILIKE '%' || $1 || '%') OR $1 IS NULL)
+  ${
+    singleAccount
+      ? 'a.id = $1'
+      : (({ dateType }): string => {
+          const col =
+            dateType === 'mstCustomerStart'
+              ? 'a.mst_customer_start_date_c'
+              : dateType === 'trialStart'
+                ? 'a.trial_start_date_c'
+                : 'a.customer_start_date_c';
+          return `((a.name ILIKE '%' || $1 || '%') OR $1 IS NULL)
   AND (${col} >= $2 OR $2 IS NULL)
   AND (${col} <= $3 OR $3 IS NULL)`;
-  })(params)}
+        })(params)
+  }
 ORDER BY a.name
 `,
     singleAccount
       ? [params.accountId]
-      : [
-          params.nameKeyword,
-          params.dateRangeStart,
-          params.dateRangeEnd,
-        ],
+      : [params.nameKeyword, params.dateRangeStart, params.dateRangeEnd],
   );
   //Customer_Start_Date__c, MST_Customer_Start_Date__c, Trial_Start_Date__c
   if (singleAccount) {

@@ -18,11 +18,15 @@ const inputSchema = {
   dateRangeStart: z.coerce
     .date()
     .nullable()
-    .describe('Start of the date range for the selected dateType field (inclusive).'),
+    .describe(
+      'Start of the date range for the selected dateType field (inclusive).',
+    ),
   dateRangeEnd: z.coerce
     .date()
     .nullable()
-    .describe('End of the date range for the selected dateType field (inclusive).'),
+    .describe(
+      'End of the date range for the selected dateType field (inclusive).',
+    ),
 } as const;
 
 const outputSchema = {
