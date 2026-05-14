@@ -108,6 +108,10 @@ export const zAccountPlanDetails = z.object({
     .transform((d) => d.toISOString())
     .nullish()
     .describe('When the free plan started'),
+  trial_start_date_c: z.coerce
+    .date()
+    .transform((d) => d.toISOString())
+    .nullish(),
   free_plan_conversion_date_c: z.coerce
     .date()
     .transform((d) => d.toISOString())
@@ -416,7 +420,10 @@ export interface AccountQueryById extends AccountQueryOptions {
   accountId: string;
 }
 
-export interface AccountQueryByKeyword extends AccountQueryOptions {
+export interface AccountsQueryWithCriteria extends AccountQueryOptions {
   singleAccount: false;
-  nameKeyword: string;
+  nameKeyword?: string | null;
+  dateType?: 'cloudCustomerStart' | 'mstCustomerStart' | 'trialStart' | null;
+  dateRangeStart?: Date | null;
+  dateRangeEnd?: Date | null;
 }
