@@ -6,7 +6,6 @@ import { queryAccounts } from '../utils/queries.js';
 const inputSchema = {
   nameKeyword: z
     .string()
-    .min(1)
     .nullable()
     .describe('Keyword to use to do a fuzzy search on Account name'),
   dateType: z
