@@ -3,7 +3,7 @@ import {
   Account,
   AccountContact,
   AccountQueryById,
-  AccountQueryByKeyword,
+  AccountsQueryWithCriteria,
   Churn,
   Email,
   emailFields,
@@ -96,11 +96,11 @@ export async function queryAccounts(
 ): Promise<Account | null>;
 export async function queryAccounts(
   pool: Pool,
-  params: AccountQueryByKeyword,
+  params: AccountsQueryWithCriteria,
 ): Promise<Account[]>;
 export async function queryAccounts(
   pool: Pool,
-  params: AccountQueryById | AccountQueryByKeyword,
+  params: AccountQueryById | AccountsQueryWithCriteria,
 ): Promise<Account | Account[] | null> {
   const {
     includeContacts,
@@ -112,6 +112,7 @@ export async function queryAccounts(
     includeUsage,
     singleAccount,
   } = params;
+
 
   const result = await pool.query<Account>(
     /* sql */ `
@@ -133,6 +134,7 @@ SELECT
           'a.account_health_c',
           'a.customer_start_date_c',
           'a.customer_end_date_c',
+          'a.trial_start_date_c',
           'a.plan_type_c',
           'a.free_plan_started_c',
           'a.free_plan_conversion_date_c',
@@ -198,13 +200,28 @@ ${
     : ''
 }
  
-WHERE NOT COALESCE(a.is_deleted, false)
-  ${singleAccount ? 'AND a.id = $1' : "AND a.name ILIKE '%' || $1 || '%'"}
+WHERE NOT COALESCE(a.is_deleted, false) AND
+  ${singleAccount ? 'a.id = $1' : (({ dateType }): string => {
+    const col = dateType === 'mstCustomerStart'
+      ? 'a.mst_customer_start_date_c'
+      : dateType === 'trialStart'
+      ? 'a.trial_start_date_c'
+      : 'a.customer_start_date_c';
+    return `((a.name ILIKE '%' || $1 || '%') OR $1 IS NULL)
+  AND (${col} >= $2 OR $2 IS NULL)
+  AND (${col} <= $3 OR $3 IS NULL)`;
+  })(params)}
 ORDER BY a.name
 `,
-    [singleAccount ? params.accountId : params.nameKeyword],
+    singleAccount
+      ? [params.accountId]
+      : [
+          params.nameKeyword,
+          params.dateRangeStart,
+          params.dateRangeEnd,
+        ],
   );
-
+  //Customer_Start_Date__c, MST_Customer_Start_Date__c, Trial_Start_Date__c
   if (singleAccount) {
     if (result?.rowCount && result.rowCount > 1) {
       throw new Error(
