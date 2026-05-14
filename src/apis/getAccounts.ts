@@ -72,7 +72,7 @@ Returns minimal account information (id, name, type, website, industry) — not 
     return {
       accounts,
       url_template: process.env.SALESFORCE_DOMAIN
-        ? 'https://${process.env.SALESFORCE_DOMAIN}/lightning/r/Account/${account.id}/view'
+        ? `https://${process.env.SALESFORCE_DOMAIN}/lightning/r/Account/{account.id}/view`
         : undefined,
     };
   },
