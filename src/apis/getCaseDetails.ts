@@ -136,15 +136,11 @@ LIMIT 1
       caseData.url = `https://${process.env.SALESFORCE_DOMAIN}/lightning/r/Case/${caseId}/view`;
     }
 
+    // it might worth nulling the case description if we have emails as the original email's body should be equivalent to the case description
     const emailOutputs: EmailOutput[] | null =
       emails?.map((email) => {
         const bodyToUse = email.html_body || email.text_body;
         const body = (bodyToUse ? parseEmailReply(bodyToUse) : null)?.trim();
-
-        const textBody = email.text_body ? parseEmailReply(email.text_body)?.trim() : null;
-        if (textBody === caseData.description?.trim()) {
-          caseData.description = null;
-        }
 
         return {
           from_address: email.from_address,
