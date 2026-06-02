@@ -6,18 +6,18 @@ import {
   CaseDetailsWithUrl,
   CaseRow,
   Email,
+  EmailOutput,
   ServerContext,
   zCaseDetailsWithUrl,
-  zEmail,
+  zEmailOutput,
 } from '../types.js';
 import { getCaseDetails, getCaseEmails } from '../utils/salesforce.js';
 import { queryEmails } from '../utils/queries.js';
 
-// Pattern used to separate original message in Salesforce emails
-const originalMessagePattern = /[-_]{10,}\s*Original Message\s*[-_]{10,}/i;
+// Matches "--------------- Original Message ---------------" in plain text or HTML
+const originalMessagePattern = /[-]{5,}\s*Original Message\s*[-]{5,}/i;
 
-// Strip out the Salesforce reply quotes
-// Handles "--------------- Original Message ---------------" separator
+// Strip quoted reply history from an email body (plain text or HTML).
 function parseEmailReply(text: string | null): string | null {
   const trimmed = text?.trim();
   if (!trimmed) return null;
@@ -40,12 +40,17 @@ const inputSchema = {
     .describe(
       'The unique identifier of the Salesforce case to retrieve details for. This can either be the case id (e.g. "0053s000004R2WwAAK") or the case number (e.g. "00037312")',
     ),
+  query_salesforce_directly: z
+    .boolean()
+    .describe(
+      'Whether or not to use Salesforce directly. If false, will query the database that has Salesforce data synced to it every 5 hours. If true, will get realtime data from Salesforce.',
+    ),
 } as const;
 
 const outputSchema = {
   case: zCaseDetailsWithUrl,
   emails: z
-    .array(zEmail)
+    .array(zEmailOutput)
     .nullish()
     .describe('Array of email messages in chronological order'),
 } as const;
@@ -67,32 +72,14 @@ export const getCaseDetailsFactory: ApiFactory<
   },
   fn: async ({
     case_id_or_number,
+    query_salesforce_directly,
   }): Promise<InferSchema<typeof outputSchema>> => {
-    const result = await pgPool.query<CaseRow>(
-      /* sql */ `
-SELECT
-  -- Case fields
-  ${caseDetailsFields.join('\n  , ')}
-FROM salesforce.case
-WHERE id = $1 OR case_number = $1
-LIMIT 0
-`,
-      [case_id_or_number],
-    );
-
     let caseRow: CaseRow | null = null;
     let emails: Email[] | null = null;
 
-    // if the case exists in our db, use the results
-    if (result.rows.length) {
-      caseRow = result.rows[0];
-      emails = await queryEmails(pgPool, caseRow.id);
-    }
-    // otherwise, if we have salesforce credentials, let's fetch directly
-    // from Salesforce
-    else if (salesforceClientFactory) {
+    if (query_salesforce_directly && salesforceClientFactory) {
       const client = await salesforceClientFactory();
-      log.info('Case not found in db, using Salesforce API', {
+      log.info('Querying with Salesforce API', {
         caseIdOrNumber: case_id_or_number,
       });
 
@@ -106,7 +93,29 @@ LIMIT 0
 
       emails = await getCaseEmails(client, caseRow.id);
     } else {
-      throw new Error('Could not find case in database.');
+      const result = await pgPool.query<CaseRow>(
+        /* sql */ `
+SELECT
+  -- Case fields
+  ${caseDetailsFields.join('\n  , ')}
+FROM salesforce.case
+WHERE id = $1 OR case_number = $1
+LIMIT 1
+`,
+        [case_id_or_number],
+      );
+
+      // if the case exists in our db, use the results
+      if (result.rows.length) {
+        caseRow = result.rows[0];
+        emails = await queryEmails(pgPool, caseRow.id);
+      }
+    }
+
+    if (!caseRow) {
+      throw new Error(
+        'Could not find case in database, try again using Salesforce API directly.',
+      );
     }
 
     const caseData: CaseDetailsWithUrl = caseDetailsFields.reduce(
@@ -127,19 +136,26 @@ LIMIT 0
       caseData.url = `https://${process.env.SALESFORCE_DOMAIN}/lightning/r/Case/${caseId}/view`;
     }
 
-    emails?.forEach((email) => {
-      const text = email.text_body ? parseEmailReply(email.text_body) : null;
+    const emailOutputs: EmailOutput[] | null =
+      emails?.map((email) => {
+        const bodyToUse = email.html_body || email.text_body;
+        const body = (bodyToUse ? parseEmailReply(bodyToUse) : null)?.trim();
 
-      if (text === caseData.description?.trim()) {
-        caseData.description = null;
-      }
+        const textBody = email.text_body ? parseEmailReply(email.text_body)?.trim() : null;
+        if (textBody === caseData.description?.trim()) {
+          caseData.description = null;
+        }
 
-      email.text_body = text;
-    });
+        return {
+          from_address: email.from_address,
+          created_date: email.created_date,
+          body,
+        };
+      }) ?? null;
 
     return {
       case: filterNulls(caseData),
-      emails: emails,
+      emails: emailOutputs,
     };
   },
 });
