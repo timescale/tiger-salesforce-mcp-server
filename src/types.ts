@@ -399,11 +399,26 @@ export const zEmail = z.object({
     .string()
     .nullish()
     .describe('The email body (with reply parsing applied)'),
+  html_body: z
+    .string()
+    .nullish()
+    .describe('The html-encoded email body (with reply parsing applied)'),
 });
 
 export type Email = z.infer<typeof zEmail>;
 
 export const emailFields = zEmail.keyof().options;
+
+export const zEmailOutput = z.object({
+  from_address: z.string().nullish().describe('The sender email address'),
+  created_date: z.coerce.date().nullish().describe('When the email was sent'),
+  body: z
+    .string()
+    .nullish()
+    .describe('The email body — HTML if available, otherwise plain text'),
+});
+
+export type EmailOutput = z.infer<typeof zEmailOutput>;
 
 export interface AccountQueryOptions {
   includePlanDetails?: boolean;
