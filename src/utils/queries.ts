@@ -6,6 +6,11 @@ import {
   AccountsQueryWithCriteria,
   Churn,
   Email,
+  accountCoreFields,
+  accountLocationFields,
+  accountPlanDetailsFields,
+  accountRevenueFields,
+  accountUsageFields,
   emailFields,
 } from '../types.js';
 import { log } from '@tigerdata/mcp-boilerplate';
@@ -113,59 +118,19 @@ export async function queryAccounts(
     singleAccount,
   } = params;
 
+  // Prefix a schema-derived field with `a.`, casting `number_of_employees` to
+  // integer since Salesforce stores it as text.
+  const asAccountCol = (c: string): string =>
+    c === 'number_of_employees' ? 'a.number_of_employees::integer' : `a.${c}`;
+
   const result = await pool.query<Account>(
     /* sql */ `
 SELECT
   ${[
-    'a.id',
-    'a.name',
-    'a.type',
-    'a.website',
-    'a.industry',
-    'a.description',
-    'a.number_of_employees::integer',
-    ...(includePlanDetails
-      ? [
-          'a.account_status_c',
-          'a.nps_score_c',
-          'a.account_tier_c',
-          'a.account_stage_c',
-          'a.account_health_c',
-          'a.customer_start_date_c',
-          'a.customer_end_date_c',
-          'a.trial_start_date_c',
-          'a.plan_type_c',
-          'a.free_plan_started_c',
-          'a.free_plan_conversion_date_c',
-          'a.billing_category_c',
-          'a.customer_use_case_c',
-          'a.company_industry_tag_c',
-          'a.mst_c',
-        ]
-      : []),
-    ...(includeRevenue
-      ? [
-          'a.annual_revenue',
-          'a.current_billable_mrr_c',
-          'a.arr_as_of_last_month_c',
-          'a.lifetime_value_c',
-        ]
-      : []),
-    ...(includeLocation
-      ? [
-          'a.billing_street',
-          'a.billing_city',
-          'a.billing_state',
-          'a.billing_postal_code',
-          'a.billing_country',
-          'a.billing_country_code',
-          'a.shipping_street',
-          'a.shipping_city',
-          'a.shipping_state',
-          'a.shipping_postal_code',
-          'a.shipping_country',
-        ]
-      : []),
+    ...accountCoreFields.map(asAccountCol),
+    ...(includePlanDetails ? accountPlanDetailsFields.map(asAccountCol) : []),
+    ...(includeRevenue ? accountRevenueFields.map(asAccountCol) : []),
+    ...(includeLocation ? accountLocationFields.map(asAccountCol) : []),
     ...(includeInternalContacts
       ? [
           'lse.name AS lead_support_engineer_name',
@@ -174,20 +139,7 @@ SELECT
           'ae.name AS account_executive_name',
         ]
       : []),
-    ...(includeUsage
-      ? [
-          'a.actively_consuming_c',
-          'a.cloud_provider_c',
-          'a.number_of_services_c',
-          'a.size_of_services_c',
-          'a.project_id_c',
-          'a.service_id_c',
-          'a.total_active_storage_c',
-          'a.total_active_cpu_c',
-          'a.weekly_page_views_c',
-          'a.cloud_trial_c',
-        ]
-      : []),
+    ...(includeUsage ? accountUsageFields.map(asAccountCol) : []),
   ].join(',\n  ')}
 FROM salesforce.account a
 ${

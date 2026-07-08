@@ -54,6 +54,18 @@ export const accountContactFields = zAccountContact.keyof().options;
 export const zAccountCore = z.object({
   id: z.string().describe('Account Salesforce ID'),
   name: z.string().nullish().describe('Account / company name'),
+  orb_customer_id_c: z
+    .string()
+    .nullish()
+    .describe(
+      "Orb's own internal ID for this customer. Pairs with `billing_account_id_c` (our external ID as Orb knows it).",
+    ),
+  billing_account_id_c: z
+    .string()
+    .nullish()
+    .describe(
+      "Our external customer ID as registered with Orb. Pairs with `orb_customer_id_c` (Orb's internal ID for the same customer).",
+    ),
   type: z.string().nullish().describe('Account type'),
   website: z.string().nullish().describe('Company website'),
   industry: z.string().nullish().describe('Industry classification'),
