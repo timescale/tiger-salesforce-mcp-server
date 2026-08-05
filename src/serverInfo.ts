@@ -1,7 +1,6 @@
 import { Pool } from 'pg';
 
 import { ServerContext } from './types.js';
-import { Connection } from 'jsforce';
 import { getSalesforce } from './utils/salesforce.js';
 
 const { SALESFORCE_CLIENT_ID, SALESFORCE_CLIENT_SECRET, SALESFORCE_DOMAIN } =
@@ -14,13 +13,11 @@ export const serverInfo = {
 
 const pgPool = new Pool();
 
-let salesforceClientFactory: (() => Promise<Connection>) | null = null;
 if (!SALESFORCE_CLIENT_ID || !SALESFORCE_CLIENT_SECRET || !SALESFORCE_DOMAIN) {
-  throw new Error(
-    'Salesforce client ID, secret, and domain are not set. Will not use Salesforce API as fallback.',
-  );
-} else {
-  salesforceClientFactory = getSalesforce;
+  throw new Error('Salesforce client ID, secret, or domain are not set. ');
 }
 
-export const context: ServerContext = { pgPool, salesforceClientFactory };
+export const context: ServerContext = {
+  pgPool,
+  salesforceClientFactory: getSalesforce,
+};

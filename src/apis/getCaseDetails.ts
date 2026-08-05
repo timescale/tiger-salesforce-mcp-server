@@ -43,7 +43,7 @@ const inputSchema = {
   query_salesforce_directly: z
     .boolean()
     .describe(
-      'Whether or not to use Salesforce directly. If false, will query the database that has Salesforce data synced to it every 5 hours. If true, will get realtime data from Salesforce.',
+      'Whether or not to use Salesforce directly. If false, will first query the database that has Salesforce data synced to it every 5 hours, falling back to Salesforce if the case is not found. If true, will skip the database and get realtime data from Salesforce.',
     ),
 } as const;
 
@@ -77,22 +77,7 @@ export const getCaseDetailsFactory: ApiFactory<
     let caseRow: CaseRow | null = null;
     let emails: Email[] | null = null;
 
-    if (query_salesforce_directly && salesforceClientFactory) {
-      const client = await salesforceClientFactory();
-      log.info('Querying with Salesforce API', {
-        caseIdOrNumber: case_id_or_number,
-      });
-
-      caseRow = await getCaseDetails(client, case_id_or_number);
-
-      if (!caseRow) {
-        throw new Error(
-          `No case found with identifier: ${case_id_or_number}. Please verify the case ID/number and try again.`,
-        );
-      }
-
-      emails = await getCaseEmails(client, caseRow.id);
-    } else {
+    if (!query_salesforce_directly) {
       const result = await pgPool.query<CaseRow>(
         /* sql */ `
 SELECT
@@ -105,7 +90,6 @@ LIMIT 1
         [case_id_or_number],
       );
 
-      // if the case exists in our db, use the results
       if (result.rows.length) {
         caseRow = result.rows[0];
         emails = await queryEmails(pgPool, caseRow.id);
@@ -113,9 +97,19 @@ LIMIT 1
     }
 
     if (!caseRow) {
-      throw new Error(
-        'Could not find case in database, try again using Salesforce API directly.',
-      );
+      const client = await salesforceClientFactory();
+      log.info('Querying with Salesforce API', {
+        caseIdOrNumber: case_id_or_number,
+        fallback: !query_salesforce_directly,
+      });
+
+      caseRow = await getCaseDetails(client, case_id_or_number);
+
+      if (!caseRow) {
+        throw new Error(`No case found with identifier: ${case_id_or_number}.`);
+      }
+
+      emails = await getCaseEmails(client, caseRow.id);
     }
 
     const caseData: CaseDetailsWithUrl = caseDetailsFields.reduce(

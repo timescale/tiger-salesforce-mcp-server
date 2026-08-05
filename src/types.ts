@@ -4,7 +4,7 @@ import { z } from 'zod';
 
 export interface ServerContext extends Record<string, unknown> {
   pgPool: Pool;
-  salesforceClientFactory: (() => Promise<Connection>) | null;
+  salesforceClientFactory: () => Promise<Connection>;
 }
 
 export const zCaseSummary = z.object({
