@@ -1,6 +1,7 @@
 import { ApiFactory, InferSchema, log } from '@tigerdata/mcp-boilerplate';
 import { z } from 'zod';
 import {
+  CaseAttachment,
   CaseDetails,
   caseDetailsFields,
   CaseDetailsWithUrl,
@@ -8,11 +9,15 @@ import {
   Email,
   EmailOutput,
   ServerContext,
+  zCaseAttachment,
   zCaseDetailsWithUrl,
   zEmailOutput,
 } from '../types.js';
-import { getCaseDetails, getCaseEmails } from '../utils/salesforce.js';
-import { queryEmails } from '../utils/queries.js';
+import {
+  getCaseAttachments,
+  getCaseDetails,
+  getCaseEmails,
+} from '../utils/salesforce.js';
 
 // Matches "--------------- Original Message ---------------" in plain text or HTML
 const originalMessagePattern = /[-]{5,}\s*Original Message\s*[-]{5,}/i;
@@ -40,11 +45,6 @@ const inputSchema = {
     .describe(
       'The unique identifier of the Salesforce case to retrieve details for. This can either be the case id (e.g. "0053s000004R2WwAAK") or the case number (e.g. "00037312")',
     ),
-  query_salesforce_directly: z
-    .boolean()
-    .describe(
-      'Whether or not to use Salesforce directly. If false, will first query the database that has Salesforce data synced to it every 5 hours, falling back to Salesforce if the case is not found. If true, will skip the database and get realtime data from Salesforce.',
-    ),
 } as const;
 
 const outputSchema = {
@@ -53,13 +53,18 @@ const outputSchema = {
     .array(zEmailOutput)
     .nullish()
     .describe('Array of email messages in chronological order'),
+  attachments: z
+    .array(zCaseAttachment)
+    .describe(
+      'Files reachable from the Case — attached directly or via any of its EmailMessages. Deduped by (title, size, content type); inline signature images are dropped. Use `download_case_attachment` with each `{kind, download_id}` to fetch bytes.',
+    ),
 } as const;
 
 export const getCaseDetailsFactory: ApiFactory<
   ServerContext,
   typeof inputSchema,
   typeof outputSchema
-> = ({ pgPool, salesforceClientFactory }) => ({
+> = ({ salesforceClientFactory }) => ({
   name: 'get_case_details',
   method: 'get',
   route: '/case-details',
@@ -72,45 +77,26 @@ export const getCaseDetailsFactory: ApiFactory<
   },
   fn: async ({
     case_id_or_number,
-    query_salesforce_directly,
   }): Promise<InferSchema<typeof outputSchema>> => {
     let caseRow: CaseRow | null = null;
     let emails: Email[] | null = null;
+    const salesforceClient = await salesforceClientFactory();
+    log.info('Querying with Salesforce API', {
+      caseIdOrNumber: case_id_or_number,
+    });
 
-    if (!query_salesforce_directly) {
-      const result = await pgPool.query<CaseRow>(
-        /* sql */ `
-SELECT
-  -- Case fields
-  ${caseDetailsFields.join('\n  , ')}
-FROM salesforce.case
-WHERE id = $1 OR case_number = $1
-LIMIT 1
-`,
-        [case_id_or_number],
-      );
-
-      if (result.rows.length) {
-        caseRow = result.rows[0];
-        emails = await queryEmails(pgPool, caseRow.id);
-      }
-    }
+    caseRow = await getCaseDetails(salesforceClient, case_id_or_number);
 
     if (!caseRow) {
-      const client = await salesforceClientFactory();
-      log.info('Querying with Salesforce API', {
-        caseIdOrNumber: case_id_or_number,
-        fallback: !query_salesforce_directly,
-      });
-
-      caseRow = await getCaseDetails(client, case_id_or_number);
-
-      if (!caseRow) {
-        throw new Error(`No case found with identifier: ${case_id_or_number}.`);
-      }
-
-      emails = await getCaseEmails(client, caseRow.id);
+      throw new Error(`No case found with identifier: ${case_id_or_number}.`);
     }
+
+    emails = await getCaseEmails(salesforceClient, caseRow.id);
+
+    const attachments: CaseAttachment[] = await getCaseAttachments(
+      salesforceClient,
+      caseRow.id,
+    );
 
     const caseData: CaseDetailsWithUrl = caseDetailsFields.reduce(
       (acc, key) => {
@@ -146,6 +132,7 @@ LIMIT 1
     return {
       case: filterNulls(caseData),
       emails: emailOutputs,
+      attachments,
     };
   },
 });

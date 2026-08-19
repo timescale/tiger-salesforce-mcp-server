@@ -11,6 +11,7 @@ import {
   AccountQueryById,
   accountRevenueFields,
   accountUsageFields,
+  CaseAttachment,
   caseDetailsFields,
   CaseRow,
   Churn,
@@ -216,5 +217,148 @@ export const getCaseEmails = async (
     );
 
     return null;
+  }
+};
+
+// Attachments smaller than this and typed as an image are treated as
+// signature/inline-graphic noise. Real screenshots are almost always
+// well above this threshold.
+const SIGNATURE_IMAGE_MAX_BYTES = 10 * 1024;
+
+const EXT_TO_MIME: Record<string, string> = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  webp: 'image/webp',
+};
+
+// Modern Salesforce Files linked to `parentId` via ContentDocumentLink.
+// ContentDocumentLink requires a single-value equality on LinkedEntityId —
+// `IN (...)` silently returns 0 rows, so callers must loop.
+const fetchContentDocumentLinkAttachments = async (
+  client: Connection,
+  parentId: string,
+): Promise<CaseAttachment[]> => {
+  const result = await client.query(
+    `SELECT ContentDocumentId,
+        ContentDocument.Title,
+        ContentDocument.FileExtension,
+        ContentDocument.FileType,
+        ContentDocument.ContentSize,
+        ContentDocument.LatestPublishedVersionId,
+        ContentDocument.CreatedDate
+      FROM ContentDocumentLink
+      WHERE LinkedEntityId = '${parentId}'`,
+  );
+
+  const attachments: CaseAttachment[] = [];
+  for (const record of result.records) {
+    const doc =
+      (record as Record<string, unknown>).ContentDocument as
+        | Record<string, unknown>
+        | null
+        | undefined;
+    const versionId = doc?.LatestPublishedVersionId as string | undefined;
+    if (!versionId) continue;
+    const extension = (doc?.FileExtension as string | null) ?? null;
+    const fileType = (doc?.FileType as string | null) ?? null;
+    const contentType =
+      EXT_TO_MIME[(extension ?? '').toLowerCase()] ?? fileType ?? null;
+    attachments.push({
+      kind: 'file',
+      download_id: versionId,
+      parent_id: parentId,
+      title: (doc?.Title as string | null) ?? null,
+      file_extension: extension,
+      content_type: contentType,
+      size_bytes: (doc?.ContentSize as number | null) ?? null,
+      created_date: (doc?.CreatedDate as string | null) ?? null,
+    });
+  }
+  return attachments;
+};
+
+// Legacy Attachment sObjects (common on EmailMessages).
+const fetchLegacyAttachments = async (
+  client: Connection,
+  parentIds: string[],
+): Promise<CaseAttachment[]> => {
+  if (parentIds.length === 0) return [];
+  const inList = parentIds.join("','");
+  const result = await client.query(
+    `SELECT Id, ParentId, Name, ContentType, BodyLength, CreatedDate
+      FROM Attachment
+      WHERE ParentId IN ('${inList}')`,
+  );
+
+  return result.records.map((rawRecord) => {
+    const record = rawRecord as Record<string, unknown>;
+    const name = (record.Name as string | null) ?? null;
+    const dotIndex = name ? name.lastIndexOf('.') : -1;
+    const extension = dotIndex > 0 ? name!.slice(dotIndex + 1) : null;
+    return {
+      kind: 'attachment' as const,
+      download_id: record.Id as string,
+      parent_id: (record.ParentId as string | null) ?? '',
+      title: name,
+      file_extension: extension,
+      content_type: (record.ContentType as string | null) ?? null,
+      size_bytes: (record.BodyLength as number | null) ?? null,
+      created_date: (record.CreatedDate as string | null) ?? null,
+    };
+  });
+};
+
+const isSignatureImage = (att: CaseAttachment): boolean => {
+  const contentType = (att.content_type ?? '').toLowerCase();
+  if (!contentType.startsWith('image/')) return false;
+  return att.size_bytes != null && att.size_bytes < SIGNATURE_IMAGE_MAX_BYTES;
+};
+
+// Fetch all files reachable from a Case — modern Files + legacy Attachments,
+// on both the Case itself and its EmailMessages. Dedupes by
+// (title, size_bytes, content_type) and drops small inline images
+// (signature glyphs) which are the dominant noise source on email cases.
+export const getCaseAttachments = async (
+  client: Connection,
+  caseId: string,
+): Promise<CaseAttachment[]> => {
+  try {
+    const raw: CaseAttachment[] = [];
+
+    raw.push(...(await fetchContentDocumentLinkAttachments(client, caseId)));
+    raw.push(...(await fetchLegacyAttachments(client, [caseId])));
+
+    const emailResult = await client.query(
+      `SELECT Id FROM EmailMessage WHERE ParentId = '${caseId}' AND HasAttachment = true`,
+    );
+    const emailIds = emailResult.records.map(
+      (e) => (e as Record<string, unknown>).Id as string,
+    );
+
+    for (const eid of emailIds) {
+      raw.push(...(await fetchContentDocumentLinkAttachments(client, eid)));
+    }
+    raw.push(...(await fetchLegacyAttachments(client, emailIds)));
+
+    const filtered = raw.filter((a) => !isSignatureImage(a));
+
+    const seen = new Set<string>();
+    const deduped: CaseAttachment[] = [];
+    for (const a of filtered) {
+      const key = `${a.title ?? ''}|${a.size_bytes ?? ''}|${a.content_type ?? ''}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      deduped.push(a);
+    }
+    return deduped;
+  } catch (e) {
+    log.error(
+      'Failed to query the Salesforce API for case attachments',
+      e as Error,
+      { caseId },
+    );
+    return [];
   }
 };
