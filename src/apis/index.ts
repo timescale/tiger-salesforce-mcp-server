@@ -1,5 +1,6 @@
 import { getCaseSummaryFactory } from './getCaseSummary.js';
 import { getCaseDetailsFactory } from './getCaseDetails.js';
+import { downloadCaseAttachmentFactory } from './downloadCaseAttachment.js';
 import { searchCaseSummariesFactory } from './searchCaseSummaries.js';
 import { searchChurnInformationFactory } from './searchChurnInformation.js';
 import { getAccountDetailsFactory } from './getAccountDetails.js';
@@ -9,6 +10,7 @@ import { getUserDetailsFactory } from './getUserDetails.js';
 export const apiFactories = [
   getCaseSummaryFactory,
   getCaseDetailsFactory,
+  downloadCaseAttachmentFactory,
   searchCaseSummariesFactory,
   searchChurnInformationFactory,
   getAccountDetailsFactory,

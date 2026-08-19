@@ -404,6 +404,37 @@ export const zCaseDetailsWithUrl = zCaseDetails.extend({
 });
 export type CaseDetailsWithUrl = z.infer<typeof zCaseDetailsWithUrl>;
 
+export const zCaseAttachment = z.object({
+  kind: z
+    .enum(['file', 'attachment'])
+    .describe(
+      'Attachment source type. `file` = modern Salesforce Files (ContentVersion Id, starts with "068"). `attachment` = legacy Attachment sObject (Id starts with "00P"), common on EmailMessages.',
+    ),
+  download_id: z
+    .string()
+    .describe(
+      'The Salesforce Id to pass to `download_case_attachment` — a ContentVersion Id when kind=file, an Attachment Id when kind=attachment.',
+    ),
+  parent_id: z
+    .string()
+    .describe(
+      'The record the file is attached to — either the Case Id or an EmailMessage Id belonging to the Case.',
+    ),
+  title: z.string().nullish().describe('Filename as stored in Salesforce.'),
+  file_extension: z
+    .string()
+    .nullish()
+    .describe('File extension without the dot.'),
+  content_type: z
+    .string()
+    .nullish()
+    .describe('MIME type as reported by Salesforce.'),
+  size_bytes: z.number().nullish().describe('File size in bytes.'),
+  created_date: z.string().nullish().describe('ISO-8601 creation timestamp.'),
+});
+
+export type CaseAttachment = z.infer<typeof zCaseAttachment>;
+
 export const zEmail = z.object({
   from_address: z.string().nullish().describe('The sender email address'),
   created_date: z.coerce.date().nullish().describe('When the email was sent'),
