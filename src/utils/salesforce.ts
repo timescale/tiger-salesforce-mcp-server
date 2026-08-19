@@ -254,11 +254,10 @@ const fetchContentDocumentLinkAttachments = async (
 
   const attachments: CaseAttachment[] = [];
   for (const record of result.records) {
-    const doc =
-      (record as Record<string, unknown>).ContentDocument as
-        | Record<string, unknown>
-        | null
-        | undefined;
+    const doc = (record as Record<string, unknown>).ContentDocument as
+      | Record<string, unknown>
+      | null
+      | undefined;
     const versionId = doc?.LatestPublishedVersionId as string | undefined;
     if (!versionId) continue;
     const extension = (doc?.FileExtension as string | null) ?? null;

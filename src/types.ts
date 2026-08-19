@@ -421,8 +421,14 @@ export const zCaseAttachment = z.object({
       'The record the file is attached to — either the Case Id or an EmailMessage Id belonging to the Case.',
     ),
   title: z.string().nullish().describe('Filename as stored in Salesforce.'),
-  file_extension: z.string().nullish().describe('File extension without the dot.'),
-  content_type: z.string().nullish().describe('MIME type as reported by Salesforce.'),
+  file_extension: z
+    .string()
+    .nullish()
+    .describe('File extension without the dot.'),
+  content_type: z
+    .string()
+    .nullish()
+    .describe('MIME type as reported by Salesforce.'),
   size_bytes: z.number().nullish().describe('File size in bytes.'),
   created_date: z.string().nullish().describe('ISO-8601 creation timestamp.'),
 });

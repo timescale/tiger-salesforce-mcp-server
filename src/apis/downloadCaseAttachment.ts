@@ -28,9 +28,7 @@ const outputSchema = {
     .describe(
       'The Content-Type header returned by Salesforce for the file body, if present.',
     ),
-  size_bytes: z
-    .number()
-    .describe('Length of the decoded file body in bytes.'),
+  size_bytes: z.number().describe('Length of the decoded file body in bytes.'),
   body_base64: z
     .string()
     .describe(
@@ -49,7 +47,7 @@ export const downloadCaseAttachmentFactory: ApiFactory<
   config: {
     title: 'Download Salesforce Case Attachment',
     description:
-      "Download the raw bytes of a file reachable from a Salesforce Case. Pass the `kind` and `download_id` returned by a Case-details fetch — modern Files use ContentVersion Ids (kind=file); legacy Attachments (common on emails) use Attachment Ids (kind=attachment). The body is returned base64-encoded.",
+      'Download the raw bytes of a file reachable from a Salesforce Case. Pass the `kind` and `download_id` returned by a Case-details fetch — modern Files use ContentVersion Ids (kind=file); legacy Attachments (common on emails) use Attachment Ids (kind=attachment). The body is returned base64-encoded.',
     inputSchema,
     outputSchema,
   },
