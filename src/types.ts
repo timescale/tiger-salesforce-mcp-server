@@ -240,10 +240,6 @@ export const zAccountChurnInformation = z.object({
 export type AccountChurnInformation = z.infer<typeof zAccountChurnInformation>;
 
 export const zAccountUsageInformation = z.object({
-  actively_consuming_c: z
-    .boolean()
-    .nullish()
-    .describe('Is actively consuming (custom)'),
   cloud_provider_c: z.string().nullish().describe('Cloud provider (custom)'),
   number_of_services_c: z
     .number()
