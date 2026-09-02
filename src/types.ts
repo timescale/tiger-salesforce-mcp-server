@@ -7,6 +7,15 @@ export interface ServerContext extends Record<string, unknown> {
   salesforceClientFactory: () => Promise<Connection>;
 }
 
+export type EntityTypes = 'account' | 'contact' | 'user' | 'group' | 'case';
+export const EntityTypeToPrefixLookup: Record<EntityTypes, string> = {
+  account: '001',
+  contact: '003',
+  user: '005',
+  case: '500',
+  group: '00G',
+};
+
 export const zCaseSummary = z.object({
   case_id: z.string().describe('The unique identifier of the case.'),
   summary: z.string().describe('The content of the case summary.'),
@@ -481,3 +490,42 @@ export interface AccountsQueryWithCriteria extends AccountQueryOptions {
   dateRangeStart?: Date | null;
   dateRangeEnd?: Date | null;
 }
+export const zAccountId = z
+  .string()
+  .min(1)
+  .regex(
+    new RegExp(
+      `^${EntityTypeToPrefixLookup['account']}([a-zA-Z0-9]{12}|[a-zA-Z0-9]{15})$`,
+    ),
+    `A Salesforce Account ID must be 15 or 18 characters and start with ${EntityTypeToPrefixLookup['account']} (e.g. ${EntityTypeToPrefixLookup['account']}3s00000uGUa8AAG).`,
+  )
+  .describe(
+    `A Salesforce Account ID. 15 or 18 characters, starts with ${EntityTypeToPrefixLookup['account']}.`,
+  );
+
+export const zUserId = z
+  .string()
+  .min(1)
+  .regex(
+    new RegExp(
+      `^${EntityTypeToPrefixLookup['user']}([a-zA-Z0-9]{12}|[a-zA-Z0-9]{15})$`,
+    ),
+    `A Salesforce User ID must be 15 or 18 characters and start with ${EntityTypeToPrefixLookup['user']} (e.g. ${EntityTypeToPrefixLookup['user']}Nv000007cRRNIA2). Note: a case's OwnerId can be either a User (${EntityTypeToPrefixLookup['user']}...) or a Group/Queue (${EntityTypeToPrefixLookup['group']}...); only User IDs are valid here.`,
+  )
+  .describe(
+    `A Salesforce User ID. 15 or 18 characters, starts with ${EntityTypeToPrefixLookup['user']}.`,
+  );
+
+export const zGetCaseSchema = {
+  case_id_or_number: z
+    .string()
+    .regex(
+      new RegExp(
+        `^(${EntityTypeToPrefixLookup['case']}([a-zA-Z0-9]{12}|[a-zA-Z0-9]{15})|\\d{8})$`,
+      ),
+      `case_id_or_number must be either a 15- or 18-character Salesforce case ID that starts with ${EntityTypeToPrefixLookup['case']} (e.g. "${EntityTypeToPrefixLookup['case']}3s000004R2WwAAK") or an 8-digit numeric case number (e.g. "00037312").`,
+    )
+    .describe(
+      `The unique identifier of the Salesforce case to retrieve details for. This can either be the case id (starts with ${EntityTypeToPrefixLookup['case']}, e.g. "${EntityTypeToPrefixLookup['case']}3s000004R2WwAAK") or the numeric case number (e.g. "00037312").`,
+    ),
+} as const;

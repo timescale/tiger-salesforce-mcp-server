@@ -5,14 +5,12 @@ import { z } from 'zod';
 import {
   CaseSummaryWithSemanticDistance,
   ServerContext,
+  zAccountId,
   zCaseSummaryWithSemanticDistance,
 } from '../types.js';
 
 const inputSchema = {
-  accountId: z
-    .string()
-    .nullable()
-    .describe('The id of the customer account to filter by'),
+  accountId: zAccountId.nullable(),
   limit: z.coerce
     .number()
     .min(1)
@@ -33,7 +31,7 @@ const inputSchema = {
     .min(1)
     .nullable()
     .describe(
-      'The natural language query used to search the TimescaleDB documentation for relevant information.',
+      'The natural language query used to semantically filter rank case summaries. Only useful for finding cases related to a theme/idea — do not use for exact keywords or identifiers.',
     ),
   timestampStart: z.coerce
     .date()

@@ -12,6 +12,7 @@ import {
   zCaseAttachment,
   zCaseDetailsWithUrl,
   zEmailOutput,
+  zGetCaseSchema,
 } from '../types.js';
 import {
   getCaseAttachments,
@@ -35,18 +36,6 @@ function parseEmailReply(text: string | null): string | null {
   return trimmed;
 }
 
-const inputSchema = {
-  case_id_or_number: z
-    .string()
-    .regex(
-      /^([a-zA-Z0-9]{18}|\d+)$/,
-      'case_id must be either an 18-character Salesforce case ID (e.g. "0053s000004R2WwAAK") or a numeric case number (e.g. "00037312")',
-    )
-    .describe(
-      'The unique identifier of the Salesforce case to retrieve details for. This can either be the case id (e.g. "0053s000004R2WwAAK") or the case number (e.g. "00037312")',
-    ),
-} as const;
-
 const outputSchema = {
   case: zCaseDetailsWithUrl,
   emails: z
@@ -62,7 +51,7 @@ const outputSchema = {
 
 export const getCaseDetailsFactory: ApiFactory<
   ServerContext,
-  typeof inputSchema,
+  typeof zGetCaseSchema,
   typeof outputSchema
 > = ({ salesforceClientFactory }) => ({
   name: 'get_case_details',
@@ -72,7 +61,7 @@ export const getCaseDetailsFactory: ApiFactory<
     title: 'Get Salesforce Case Details',
     description:
       'This retrieves complete details for a specific Salesforce support case, including all metadata and the complete email conversation thread. Be sure to create a link to the case in your response, using the returned `url`.',
-    inputSchema,
+    inputSchema: zGetCaseSchema,
     outputSchema,
   },
   fn: async ({
