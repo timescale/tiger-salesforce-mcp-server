@@ -1,12 +1,12 @@
 import { ApiFactory, InferSchema } from '@tigerdata/mcp-boilerplate';
 import { z } from 'zod';
-import { Churn, ServerContext, zChurn } from '../types.js';
+import { Churn, ServerContext, zAccountId, zChurn } from '../types.js';
 
 const inputSchema = {
   accountIds: z
-    .array(z.string())
+    .array(zAccountId)
     .nullable()
-    .describe('Optional list of account IDs to filter churn records by'),
+    .describe('Optional list of Salesforce Account IDs to filter churn records by.'),
   churnStatus: z
     .string()
     .nullable()

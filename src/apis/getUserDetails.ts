@@ -1,17 +1,14 @@
 import { ApiFactory, InferSchema } from '@tigerdata/mcp-boilerplate';
-import { z } from 'zod';
-import { ServerContext, UserDetails, zUserDetails } from '../types.js';
+import {
+  EntityTypeToPrefixLookup,
+  ServerContext,
+  UserDetails,
+  zUserDetails,
+  zUserId,
+} from '../types.js';
 
 const inputSchema = {
-  user_id: z
-    .string()
-    .regex(
-      /^[a-zA-Z0-9]{18}$/,
-      'user_id must be an 18-character Salesforce user ID (e.g. "005Nv000007cRRNIA2")',
-    )
-    .describe(
-      'The unique 18-character Salesforce user ID (e.g. "005Nv000007cRRNIA2")',
-    ),
+  user_id: zUserId,
 } as const;
 
 const userDetailsFields = zUserDetails.keyof().options;
@@ -30,8 +27,7 @@ export const getUserDetailsFactory: ApiFactory<
   route: '/user-details',
   config: {
     title: 'Get Salesforce User Details',
-    description:
-      'This retrieves details for a specific Salesforce user by their 18-character user ID.',
+    description: `Retrieve details for a specific Salesforce user by their 15- or 18-character User ID (starts with ${EntityTypeToPrefixLookup['user']}). Note: a case's OwnerId may be a Group/Queue (starts with ${EntityTypeToPrefixLookup['group']}) rather than a User — those are not valid inputs to this tool.`,
     inputSchema,
     outputSchema,
   },
@@ -47,9 +43,7 @@ WHERE u.id = $1
     );
 
     if (result.rows.length === 0) {
-      throw new Error(
-        `No user found with ID: ${user_id}. Please verify the user ID and try again.`,
-      );
+      throw new Error(`No user found with ID: ${user_id}.`);
     }
 
     const [user] = result.rows;
