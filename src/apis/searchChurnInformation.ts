@@ -6,7 +6,9 @@ const inputSchema = {
   accountIds: z
     .array(zAccountId)
     .nullable()
-    .describe('Optional list of Salesforce Account IDs to filter churn records by.'),
+    .describe(
+      'Optional list of Salesforce Account IDs to filter churn records by.',
+    ),
   churnStatus: z
     .string()
     .nullable()

@@ -494,7 +494,9 @@ export const zAccountId = z
   .string()
   .min(1)
   .regex(
-    new RegExp(`^${EntityTypeToPrefixLookup['account']}([a-zA-Z0-9]{12}|[a-zA-Z0-9]{15})$`),
+    new RegExp(
+      `^${EntityTypeToPrefixLookup['account']}([a-zA-Z0-9]{12}|[a-zA-Z0-9]{15})$`,
+    ),
     `A Salesforce Account ID must be 15 or 18 characters and start with ${EntityTypeToPrefixLookup['account']} (e.g. ${EntityTypeToPrefixLookup['account']}3s00000uGUa8AAG).`,
   )
   .describe(
@@ -505,7 +507,9 @@ export const zUserId = z
   .string()
   .min(1)
   .regex(
-    new RegExp(`^${EntityTypeToPrefixLookup['user']}([a-zA-Z0-9]{12}|[a-zA-Z0-9]{15})$`),
+    new RegExp(
+      `^${EntityTypeToPrefixLookup['user']}([a-zA-Z0-9]{12}|[a-zA-Z0-9]{15})$`,
+    ),
     `A Salesforce User ID must be 15 or 18 characters and start with ${EntityTypeToPrefixLookup['user']} (e.g. ${EntityTypeToPrefixLookup['user']}Nv000007cRRNIA2). Note: a case's OwnerId can be either a User (${EntityTypeToPrefixLookup['user']}...) or a Group/Queue (${EntityTypeToPrefixLookup['group']}...); only User IDs are valid here.`,
   )
   .describe(
