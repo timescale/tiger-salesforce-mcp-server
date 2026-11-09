@@ -10,10 +10,10 @@ import {
 const inputSchema = zSearchCaseSchema.extend({
   keyword: z
     .string()
-    .min(1)
+    .min(2)
     .nullable()
     .describe(
-      'The natural language query used to search the TimescaleDB documentation for relevant information.',
+      'A literal (case-insensitive) substring to match against the case subject and description. This is not semantic search — use the exact terms you expect to appear in the case.',
     ),
   status: z
     .string()
