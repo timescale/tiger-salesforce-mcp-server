@@ -71,7 +71,7 @@ export const getCaseDetailsFactory: ApiFactory<
   config: {
     title: 'Get Salesforce Case Details',
     description:
-      'This retrieves complete details for a specific Salesforce support case, including all metadata and the complete email conversation thread. Be sure to create a link to the case in your response, using the returned `url`.',
+      'This retrieves complete details for a specific Salesforce support case, including all metadata and the complete email conversation thread. Works for both open and closed cases, and is the way to read an open case in full, since open cases have no generated summary. This is the natural follow-up to `search_cases` or `search_case_summaries`: use those to find candidate cases, then call this with a returned `case_id` to read one. Be sure to create a link to the case in your response, using the returned `url`.',
     inputSchema,
     outputSchema,
   },

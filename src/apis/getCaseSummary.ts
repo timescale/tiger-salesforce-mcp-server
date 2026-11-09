@@ -27,7 +27,7 @@ export const getCaseSummaryFactory: ApiFactory<
   config: {
     title: 'Get Salesforce Case Summary',
     description:
-      'This retrieves the summary for a specific closed Salesforce support case. Be sure to create a link to the case in your response, using the returned `url`. Note: summaries are only created for cases that are closed. Use the get_case_details tool to retrieve information for a non-closed case.',
+      'This retrieves the summary for a specific closed Salesforce support case. Be sure to create a link to the case in your response, using the returned `url`. Note: summaries are only created for cases that are closed. Use the get_case_details tool to retrieve information for a non-closed case. To find closed cases in the first place, use search_case_summaries; to find open ones, use search_cases.',
     inputSchema,
     outputSchema,
   },
