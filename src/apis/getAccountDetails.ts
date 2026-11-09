@@ -8,6 +8,7 @@ import {
   zAccountChurnInformation,
   zAccountContactInformation,
   zAccountCore,
+  zAccountId,
   zAccountInternalContact,
   zAccountLocationInformation,
   zAccountPlanDetails,
@@ -18,12 +19,7 @@ import { queryAccounts } from '../utils/queries.js';
 import { getAccountDetails } from '../utils/salesforce.js';
 
 const inputSchema = {
-  account_id: z
-    .string()
-    .min(1)
-    .describe(
-      'The Salesforce Account ID to retrieve. Either account_id or account_keyword is required.',
-    ),
+  account_id: zAccountId,
   includePlanDetails: z
     .boolean()
     .describe(

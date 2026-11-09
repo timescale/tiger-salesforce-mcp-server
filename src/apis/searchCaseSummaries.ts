@@ -15,7 +15,7 @@ const inputSchema = zSearchCaseSchema.extend({
     .min(1)
     .nullable()
     .describe(
-      'The natural language query used to search the TimescaleDB documentation for relevant information.',
+      'The natural language query used to semantically filter rank case summaries. Only useful for finding cases related to a theme/idea — do not use for exact keywords or identifiers.',
     ),
 }).shape;
 
