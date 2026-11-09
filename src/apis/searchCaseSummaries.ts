@@ -85,6 +85,7 @@ WITH distances AS (
     cs.case_id,
     summary,
     cs.updated_at,
+    cs.created_at,
     CASE WHEN $1::vector(1536) IS NULL THEN NULL ELSE embedding <=> $1::vector(1536) END AS distance
   FROM public.case_summary_embedding as cs
   JOIN salesforce."case" AS c
@@ -103,11 +104,12 @@ ranked AS (
     case_id,
     summary,
     updated_at,
+    created_at,
     distance,
     ROW_NUMBER() OVER (PARTITION BY case_id ORDER BY distance NULLS LAST, case_id) as rn
   FROM distances
 )
-SELECT case_id, summary, distance, updated_at
+SELECT case_id, summary, distance, updated_at, created_at
 FROM ranked
 WHERE rn = 1
 ${hasSemanticSearch ? 'ORDER BY distance' : 'ORDER BY updated_at DESC'}

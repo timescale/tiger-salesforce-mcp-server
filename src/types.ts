@@ -19,6 +19,7 @@ export const EntityTypeToPrefixLookup: Record<EntityTypes, string> = {
 export const zCaseSummary = z.object({
   case_id: z.string().describe('The unique identifier of the case.'),
   summary: z.string().describe('The content of the case summary.'),
+  created_at: z.coerce.date().nullish().describe('When the case was created'),
   updated_at: z.coerce
     .date()
     .nullish()
