@@ -2,6 +2,8 @@ import { ApiFactory, InferSchema } from '@tigerdata/mcp-boilerplate';
 import { z } from 'zod';
 import {
   CaseSearchResult,
+  casePriorities,
+  caseStatuses,
   ServerContext,
   zCaseSearchResult,
   zSearchCaseSchema,
@@ -16,15 +18,17 @@ const inputSchema = zSearchCaseSchema.extend({
       'A literal (case-insensitive) substring to match against the case subject and description. This is not semantic search — use the exact terms you expect to appear in the case.',
     ),
   status: z
-    .string()
+    .enum(caseStatuses)
     .nullable()
     .describe(
-      'The case status to filter on (e.g. New, Waiting on Customer, Waiting on Timescale, Spam).',
+      'The case status to filter on. `Closed` only ever matches when `includeClosed` is true; every other value is an open status.',
     ),
   priority: z
-    .string()
+    .enum(casePriorities)
     .nullable()
-    .describe('The case priority to filter on (e.g. Low, Medium, High).'),
+    .describe(
+      'The case priority to filter on. This column mixes several historic schemes — open cases in practice only use `Medium` and `High`, while the `P1-Critical`/`P2-High` and `Severity N - ...` values appear almost exclusively on older closed cases. Prefer `severity_c` on the returned rows for a consistent read of urgency.',
+    ),
   includeClosed: z
     .boolean()
     .nullable()

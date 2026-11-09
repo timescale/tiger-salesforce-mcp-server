@@ -31,7 +31,7 @@ export const getCaseSummaryFactory: ApiFactory<
   }): Promise<InferSchema<typeof outputSchema>> => {
     const result = await pgPool.query<CaseSummary>(
       /* sql */ `
-SELECT case_id, summary, updated_at
+SELECT case_id, summary, updated_at, created_at
 FROM public.case_summary
 WHERE case_id = $1 or case_number = $1
 `,

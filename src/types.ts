@@ -19,6 +19,7 @@ export const EntityTypeToPrefixLookup: Record<EntityTypes, string> = {
 export const zCaseSummary = z.object({
   case_id: z.string().describe('The unique identifier of the case.'),
   summary: z.string().describe('The content of the case summary.'),
+  created_at: z.coerce.date().nullish().describe('When the case was created'),
   updated_at: z.coerce
     .date()
     .nullish()
@@ -54,6 +55,35 @@ export const zAccountId = z
   .describe(
     `A Salesforce Account ID. 15 or 18 characters, starts with ${EntityTypeToPrefixLookup['account']}.`,
   );
+
+// Distinct values of salesforce."case".status. Every value other than
+// 'Closed' is an open status.
+export const caseStatuses = [
+  'New',
+  'Waiting on Customer',
+  'Waiting on Timescale',
+  'Spam',
+  'Closed',
+] as const;
+
+export type CaseStatus = (typeof caseStatuses)[number];
+
+// Distinct values of salesforce."case".priority. The column mixes several
+// historic schemes: open cases only use 'Medium' and 'High' in practice, while
+// the P-prefixed and 'Severity N - ...' values appear almost exclusively on
+// older closed cases.
+export const casePriorities = [
+  'Low',
+  'Medium',
+  'High',
+  'P1-Critical',
+  'P2-High',
+  'Severity 1 - Critical',
+  'Severity 2 - High',
+  'Severity 3 - Medium',
+] as const;
+
+export type CasePriority = (typeof casePriorities)[number];
 
 export const zSearchCaseSchema = z.object({
   accountId: zAccountId.nullable(),
