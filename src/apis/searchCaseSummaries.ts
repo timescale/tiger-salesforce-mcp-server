@@ -5,27 +5,11 @@ import { z } from 'zod';
 import {
   CaseSummaryWithSemanticDistance,
   ServerContext,
-  zAccountId,
   zCaseSummaryWithSemanticDistance,
+  zSearchCaseSchema,
 } from '../types.js';
 
-const inputSchema = {
-  accountId: zAccountId.nullable(),
-  limit: z.coerce
-    .number()
-    .min(1)
-    .nullable()
-    .describe('The maximum number of matches to return. Defaults to 10.'),
-  serviceId: z
-    .string()
-    .min(10)
-    .nullable()
-    .describe('The service id to filter on.'),
-  projectId: z
-    .string()
-    .min(10)
-    .nullable()
-    .describe('The project id to filter on.'),
+const inputSchema = zSearchCaseSchema.extend({
   prompt: z
     .string()
     .min(1)
@@ -33,19 +17,7 @@ const inputSchema = {
     .describe(
       'The natural language query used to semantically filter rank case summaries. Only useful for finding cases related to a theme/idea — do not use for exact keywords or identifiers.',
     ),
-  timestampStart: z.coerce
-    .date()
-    .nullable()
-    .describe(
-      'Optional start date for the case summary range. Filters on the updated at column. When null, will include all historic data.',
-    ),
-  timestampEnd: z.coerce
-    .date()
-    .nullable()
-    .describe(
-      'Optional end date for the message range. Filters on the updated at column. Defaults to the current time.',
-    ),
-} as const;
+}).shape;
 
 const outputSchema = {
   results: z.array(zCaseSummaryWithSemanticDistance),
@@ -68,7 +40,7 @@ export const searchCaseSummariesFactory: ApiFactory<
   config: {
     title: 'Search Salesforce Case Summaries',
     description: `
-Search Salesforce support case summaries using any combination of parameters:
+Search summaries of **closed** Salesforce support cases using any combination of parameters:
 - Filter by customer account id (will always be set on case and is the best way to find cases for a particular customer)
 - Filter by customer project id (this is optional on cases, but can be used to find cases that are specific to a project within a customer account)
 - Filter by customer service id (this is optional on cases, but can be used to find cases for a specific TimescaleDB instance within a customer account project)
@@ -76,6 +48,10 @@ Search Salesforce support case summaries using any combination of parameters:
 - Natural language semantic search via \`prompt\` (note: given that this is semantic search, this should only be used to find cases related to a particular idea/theme and not used to find a particular keyword)
 
 Note: when semantic search is not used, results are filtered in descending order (based on cases' updated_at field), but when semantic search is used, results are sorted by semantic relevancy.
+
+Only closed cases are reachable here: summaries and their embeddings are generated when a case closes, so cases that are still open have no summary and will never appear in these results. Use this tool for historical research — "has this happened before", "how was this resolved previously", "what themes come up for this customer".
+
+To find cases that are currently open — anything about what a customer is dealing with right now, or triaging live work — use \`search_cases\` instead. That tool covers open cases but can only match literal keywords, not the semantic \`prompt\` supported here. If you need both, call both.
 
 Always cite your sources.
 When mentioning a case in your response, format it as an inline link, as supported by the response platform.

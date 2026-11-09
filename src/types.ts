@@ -42,6 +42,50 @@ export type CaseSummaryWithSemanticDistance = z.infer<
   typeof zCaseSummaryWithSemanticDistance
 >;
 
+export const zAccountId = z
+  .string()
+  .min(1)
+  .regex(
+    new RegExp(
+      `^${EntityTypeToPrefixLookup['account']}([a-zA-Z0-9]{12}|[a-zA-Z0-9]{15})$`,
+    ),
+    `A Salesforce Account ID must be 15 or 18 characters and start with ${EntityTypeToPrefixLookup['account']} (e.g. ${EntityTypeToPrefixLookup['account']}3s00000uGUa8AAG).`,
+  )
+  .describe(
+    `A Salesforce Account ID. 15 or 18 characters, starts with ${EntityTypeToPrefixLookup['account']}.`,
+  );
+
+export const zSearchCaseSchema = z.object({
+  accountId: zAccountId.nullable(),
+  limit: z.coerce
+    .number()
+    .min(1)
+    .nullable()
+    .describe('The maximum number of matches to return. Defaults to 10.'),
+  serviceId: z
+    .string()
+    .min(10)
+    .nullable()
+    .describe('The service id to filter on.'),
+  projectId: z
+    .string()
+    .min(10)
+    .nullable()
+    .describe('The project id to filter on.'),
+  timestampStart: z.coerce
+    .date()
+    .nullable()
+    .describe(
+      'Optional start date for the case summary range. Filters on the updated at column. When null, will include all historic data.',
+    ),
+  timestampEnd: z.coerce
+    .date()
+    .nullable()
+    .describe(
+      'Optional end date for the message range. Filters on the updated at column. Defaults to the current time.',
+    ),
+});
+
 export const zAccountContact = z.object({
   account_id: z
     .string()
@@ -409,6 +453,37 @@ export const zCaseDetailsWithUrl = zCaseDetails.extend({
 });
 export type CaseDetailsWithUrl = z.infer<typeof zCaseDetailsWithUrl>;
 
+export const zCaseSearchResult = z.object({
+  case_id: z.string().describe('The unique case identifier'),
+  case_number: z.string().nullish().describe('The case number'),
+  subject: z.string().nullish().describe('The case subject'),
+  status: z
+    .string()
+    .nullish()
+    .describe('The case status (e.g. New, Waiting on Customer)'),
+  internal_status_c: z.string().nullish().describe('Internal status'),
+  priority: z.string().nullish().describe('Case priority'),
+  severity_c: z.string().nullish().describe('Case severity'),
+  account_id: z
+    .string()
+    .nullish()
+    .describe('The account ID associated with the case'),
+  account_name: z.string().nullish().describe('The name of the account'),
+  cloud_project_id_c: z.string().nullish().describe('Cloud project ID'),
+  cloud_service_id_c: z
+    .string()
+    .nullish()
+    .describe('Cloud service ID(s) — may be a comma-delimited list'),
+  owner_name: z.string().nullish().describe('The name of the case owner'),
+  created_date: z.coerce.date().nullish().describe('When the case was created'),
+  last_modified_date: z.coerce
+    .date()
+    .nullish()
+    .describe('When the case was last modified'),
+});
+
+export type CaseSearchResult = z.infer<typeof zCaseSearchResult>;
+
 export const zCaseAttachment = z.object({
   kind: z
     .enum(['file', 'attachment'])
@@ -490,18 +565,6 @@ export interface AccountsQueryWithCriteria extends AccountQueryOptions {
   dateRangeStart?: Date | null;
   dateRangeEnd?: Date | null;
 }
-export const zAccountId = z
-  .string()
-  .min(1)
-  .regex(
-    new RegExp(
-      `^${EntityTypeToPrefixLookup['account']}([a-zA-Z0-9]{12}|[a-zA-Z0-9]{15})$`,
-    ),
-    `A Salesforce Account ID must be 15 or 18 characters and start with ${EntityTypeToPrefixLookup['account']} (e.g. ${EntityTypeToPrefixLookup['account']}3s00000uGUa8AAG).`,
-  )
-  .describe(
-    `A Salesforce Account ID. 15 or 18 characters, starts with ${EntityTypeToPrefixLookup['account']}.`,
-  );
 
 export const zUserId = z
   .string()
